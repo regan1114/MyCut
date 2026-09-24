@@ -1,0 +1,42 @@
+import { openFonts, chooseFont, fontIs } from './font-helpers';
+import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+const fonts=JSON.parse(readFileSync(new URL('../../public/fonts/manifest.json',import.meta.url),'utf8'));
+test('real editing, fonts, undo, trim, project persistence, export form and keyboard',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.getByRole('button',{name:'開啟示範專案',exact:true}).click();
+ await expect(page.getByRole('button',{name:'匯出影片',exact:true})).toBeVisible({timeout:30000});await expect(page.getByRole('button',{name:'山間・原創示範素材.png，00:00:00:00'})).toBeVisible({timeout:30000});
+ await page.screenshot({path:'test-results/editor-initial.png',fullPage:true});
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBeTruthy();
+ // Seek to a point with both title and background, exercising loaded local CJK fonts.
+ await page.keyboard.press('ArrowRight');await page.keyboard.press('Shift+ArrowRight');await page.keyboard.press('Shift+ArrowRight');
+ await page.getByRole('button',{name:'文字',exact:true}).click();await page.getByRole('button',{name:'新增文字',exact:true}).click();
+ await page.getByRole('textbox',{name:'文字內容',exact:true}).fill('測試字幕\nMyCut');await expect(page.getByRole('textbox',{name:'文字內容',exact:true})).toHaveValue('測試字幕\nMyCut');
+ await chooseFont(page,'huninn');await fontIs(page,'huninn');
+ await page.screenshot({path:'test-results/editor-text.png',fullPage:true});
+ await page.getByRole('button',{name:/^複製片段（/}).click();await expect(page.locator('.timeline-footer')).toContainText('5 個片段');
+ await page.getByRole('button',{name:/^復原（/}).click();await expect(page.locator('.timeline-footer')).toContainText('4 個片段');
+ await page.getByRole('button',{name:/^重做（/}).click();await expect(page.locator('.timeline-footer')).toContainText('5 個片段');
+ await page.getByRole('button',{name:'刪除（Delete）'}).click();await expect(page.locator('.timeline-footer')).toContainText('4 個片段');
+ const handle=page.locator('.timeline-clip.clip-image .trim-handle.right');const box=await handle.boundingBox();expect(box).not.toBeNull();await page.mouse.move(box!.x+box!.width/2,box!.y+box!.height/2);await page.mouse.down();await page.mouse.move(box!.x+box!.width/2-55,box!.y+box!.height/2);await page.mouse.up();await expect(page.getByLabel('片段長度',{exact:true})).toHaveValue('11');
+ await page.getByLabel('片段長度',{exact:true}).fill('3600');await expect(page.locator('.timeline-duration')).toContainText('01:00:00:00');
+ await page.getByRole('button',{name:'符合整段影片',exact:true}).click();expect((await page.locator('.timeline-clip.clip-image').boundingBox())!.width).toBeLessThan(1500);
+ for(let i=0;i<3;i++)await page.getByRole('button',{name:'新增軌道',exact:true}).click();await page.locator('.timeline-body').evaluate(el=>el.scrollTop=el.scrollHeight);
+ const labelBox=await page.locator('.track-header').last().boundingBox();const laneBox=await page.locator('.track-lane').last().boundingBox();expect(Math.abs(labelBox!.y-laneBox!.y)).toBeLessThan(2);
+ await page.getByLabel('片段長度',{exact:true}).fill('12');
+ await page.locator('.clip-text').first().click();await openFonts(page);await expect(page.locator('.font-card')).toHaveCount(fonts.length);
+ await page.getByRole('button',{name:'匯出影片',exact:true}).click();await expect(page.getByRole('dialog',{name:'匯出影片',exact:true})).toBeVisible();await page.getByLabel('匯出解析度').selectOption('720');await page.screenshot({path:'test-results/export-dialog.png',fullPage:true});await page.getByRole('button',{name:'關閉',exact:true}).click();
+ await expect(page.getByText('已儲存至本機',{exact:true})).toBeVisible();await page.reload();await page.getByRole('button',{name:'開啟 山間，慢一點',exact:true}).click();await expect(page.locator('.timeline-footer')).toContainText('4 個片段',{timeout:30000});
+ await page.getByRole('button',{name:'播放（Space）',exact:true}).click();await expect(page.getByRole('button',{name:'暫停（Space）',exact:true})).toBeVisible();await page.keyboard.press('Space');
+ expect(errors).toEqual([]);
+});
+test('recording streams to disk, becomes valid audio, supports ranges and waveform',async({page})=>{
+ await page.addInitScript(()=>{Object.defineProperty(navigator.mediaDevices,'getUserMedia',{value:async()=>{const context=new AudioContext();const tone=context.createOscillator();const dest=context.createMediaStreamDestination();tone.frequency.value=440;tone.connect(dest);tone.start();await context.resume();return dest.stream;}});});
+ await page.goto('/');await page.getByRole('button',{name:'開啟示範專案',exact:true}).click();await expect(page.locator('.loading-screen')).toHaveCount(0);await page.getByRole('navigation').getByRole('button',{name:'音訊',exact:true}).click();
+ const firstChunk=page.waitForResponse(r=>/\/api\/recordings\/[^/]+\/0$/.test(r.url())&&r.request().method()==='POST');
+ await page.getByRole('button',{name:'錄製旁白',exact:true}).click();await expect(page.getByRole('button',{name:'停止錄音並加入素材',exact:true})).toBeVisible();expect((await firstChunk).ok()).toBeTruthy();await page.getByRole('button',{name:'停止錄音並加入素材',exact:true}).click();
+ await expect(page.locator('.media-name').filter({hasText:'旁白'})).toBeVisible({timeout:15000});
+ const list=await(await page.request.get('/api/media')).json();const audio=list.find((m:any)=>m.kind==='audio');expect(audio.duration).toBeGreaterThan(0);expect(audio.hasAudio).toBe(true);
+ const range=await page.request.get(`/media/${audio.id}/original`,{headers:{Range:'bytes=0-31'}});expect(range.status()).toBe(206);expect((await range.body()).length).toBe(32);
+ await expect.poll(async()=>{const list=await(await page.request.get('/api/media')).json();return list.find((m:any)=>m.id===audio.id)?.waveform?.length;}).toBe(600);
+ const blocked=await page.request.post('/api/recordings',{headers:{Origin:'https://example.invalid','X-MyCut':'1'}});expect(blocked.status()).toBe(403);
+});

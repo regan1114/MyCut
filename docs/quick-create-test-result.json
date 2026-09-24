@@ -1,0 +1,20 @@
+{
+  "version": "0.6.2",
+  "testedAt": "2026-09-24T09:46:14.466Z",
+  "platform": "darwin",
+  "arch": "x64",
+  "packagedApp": true,
+  "oneClickCreate": true,
+  "noCreationDialog": true,
+  "defaults": {
+    "name": "未命名專案",
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+  "savedAndReopened": true,
+  "repeatedCreationUsesDistinctIds": true,
+  "emptyTimeline": true,
+  "browserHomeWorkflow": "passed",
+  "errors": []
+}

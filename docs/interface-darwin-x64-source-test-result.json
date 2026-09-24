@@ -1,0 +1,81 @@
+{
+  "version": "0.6.7",
+  "testedAt": "2026-09-24T11:18:38.129Z",
+  "platform": "darwin",
+  "arch": "x64",
+  "packagedApp": false,
+  "hoverNames": true,
+  "disabledTooltips": true,
+  "keyboardFocus": true,
+  "escapeDismissal": true,
+  "viewportBounds": true,
+  "shortTooltipSingleLine": true,
+  "collapsedSettingsAccessible": true,
+  "textAppendsWithoutOverlap": true,
+  "resizablePanels": true,
+  "minimumPanelContentWidths": true,
+  "captionPropertyList": true,
+  "captionToolsNavigation": true,
+  "timelineUsesTextContent": true,
+  "fontNamesPreview": true,
+  "fontSelectionEditsExistingClip": true,
+  "iconLabelAudit": [
+    {
+      "surface": "home",
+      "iconButtons": 0
+    },
+    {
+      "surface": "素材",
+      "iconButtons": 44
+    },
+    {
+      "surface": "音訊",
+      "iconButtons": 44
+    },
+    {
+      "surface": "文字",
+      "iconButtons": 44
+    },
+    {
+      "surface": "字幕",
+      "iconButtons": 44
+    },
+    {
+      "surface": "特效",
+      "iconButtons": 44
+    },
+    {
+      "surface": "濾鏡",
+      "iconButtons": 44
+    },
+    {
+      "surface": "轉場",
+      "iconButtons": 44
+    },
+    {
+      "surface": "圖形",
+      "iconButtons": 44
+    },
+    {
+      "surface": "font properties",
+      "iconButtons": 45
+    },
+    {
+      "surface": "caption properties",
+      "iconButtons": 44
+    },
+    {
+      "surface": "expanded effects",
+      "iconButtons": 44
+    },
+    {
+      "surface": "export",
+      "iconButtons": 45
+    },
+    {
+      "surface": "home with project",
+      "iconButtons": 3
+    }
+  ],
+  "errors": []
+}

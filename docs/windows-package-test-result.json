@@ -1,0 +1,22 @@
+{
+  "testedAt": "2026-09-24T14:04:13.842Z",
+  "version": "0.6.11",
+  "scope": "Static package validation on darwin",
+  "nativeWindowsExecution": "not performed by this test",
+  "binaries": [
+    "MyCut.exe",
+    "resources/app.asar.unpacked/node_modules/ffmpeg-static/ffmpeg.exe",
+    "resources/app.asar.unpacked/node_modules/ffprobe-static/bin/win32/x64/ffprobe.exe",
+    "resources/app.asar.unpacked/resources/speech/win32-x64/whisper-cli.exe"
+  ],
+  "nativeFiles": [
+    "resources/app.asar.unpacked/node_modules/@napi-rs/canvas-win32-x64-msvc/skia.win32-x64-msvc.node",
+    "resources/app.asar.unpacked/node_modules/@resvg/resvg-js-win32-x64-msvc/resvgjs.win32-x64-msvc.node"
+  ],
+  "utf8SpeechManifest": true,
+  "bundledRuntime": true,
+  "offlineModelSha256": "passed",
+  "fonts": 40,
+  "fontHashesAndLicenses": "passed",
+  "artwork": 53
+}

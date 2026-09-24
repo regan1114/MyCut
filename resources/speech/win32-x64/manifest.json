@@ -1,0 +1,9 @@
+{
+  "platform": "win32",
+  "arch": "x64",
+  "version": "1.8.6",
+  "sha256": "7c3816980017a1bff58a9286a339b8d2b3d9d4ab344c14a3c43af716295c7a4a",
+  "utf8Manifest": true,
+  "cpu": "x64, AVX2",
+  "runtime": "Microsoft Visual C++ v14, app-local"
+}

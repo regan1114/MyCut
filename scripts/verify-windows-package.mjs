@@ -1,0 +1,30 @@
+import { verifyBundledFonts } from './verify-bundled-fonts.mjs';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {NtExecutable,NtExecutableResource} from 'resedit';
+import {sha256} from './native-downloads.mjs';
+const require=createRequire(import.meta.url),asar=require('@electron/asar');
+const app=path.resolve('release/win-unpacked'),unpacked=path.join(app,'resources/app.asar.unpacked');
+const archive=path.join(app,'resources/app.asar');
+const appManifest=JSON.parse(asar.extractFile(archive,'package.json').toString());
+assert.equal(appManifest.version,JSON.parse(await fs.readFile('package.json','utf8')).version);
+const binaries=['MyCut.exe','resources/app.asar.unpacked/node_modules/ffmpeg-static/ffmpeg.exe','resources/app.asar.unpacked/node_modules/ffprobe-static/bin/win32/x64/ffprobe.exe','resources/app.asar.unpacked/resources/speech/win32-x64/whisper-cli.exe'];
+async function pe(file){const b=await fs.readFile(file);assert.equal(b.toString('ascii',0,2),'MZ',file);const offset=b.readUInt32LE(0x3c);assert.equal(b.toString('ascii',offset,offset+4),'PE\0\0');assert.equal(b.readUInt16LE(offset+4),0x8664,`Expected x64 PE: ${file}`);return b;}
+for(const file of binaries)await pe(path.join(app,file));
+const nativeFiles=[];
+async function walk(dir){for(const item of await fs.readdir(dir,{withFileTypes:true})){const file=path.join(dir,item.name);if(item.isDirectory())await walk(file);else if(item.name.endsWith('.node')){await pe(file);nativeFiles.push(path.relative(app,file));}}}
+await walk(path.join(unpacked,'node_modules'));assert.ok(nativeFiles.some(f=>f.includes('canvas-win32-x64-msvc')));assert.ok(nativeFiles.some(f=>f.includes('resvg-js-win32-x64-msvc')));
+assert.deepEqual(await fs.readdir(path.join(unpacked,'node_modules/ffprobe-static/bin')),['win32']);
+assert.deepEqual(await fs.readdir(path.join(unpacked,'node_modules/ffprobe-static/bin/win32')),['x64']);
+const speech=path.join(unpacked,'resources/speech');const executable=NtExecutable.from(await fs.readFile(path.join(speech,'win32-x64/whisper-cli.exe')));
+const xml=Buffer.from(NtExecutableResource.from(executable).entries.find(e=>e.type===24&&e.id===1).bin).toString();assert.match(xml,/>UTF-8<\/activeCodePage>/);
+for(const name of ['whisper.dll','ggml.dll','ggml-base.dll','ggml-cpu.dll','msvcp140.dll','vcruntime140.dll','vcruntime140_1.dll','vcomp140.dll'])await pe(path.join(speech,'win32-x64',name));
+for(const name of ['msvcp140.dll','vcruntime140.dll','vcruntime140_1.dll'])await pe(path.join(app,name));
+assert.equal(await sha256(path.join(speech,'ggml-small-q5_1.bin')),'ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb');
+assert.ok(!(await fs.readdir(speech)).some(n=>n.startsWith('darwin-')));
+const fontCount=await verifyBundledFonts(unpacked);
+const artwork=asar.listPackage(archive).filter(n=>/\/dist\/artwork\/.*\.svg$/.test(n));assert.equal(artwork.length,53);
+const report={testedAt:new Date().toISOString(),version:appManifest.version,scope:'Static package validation on '+process.platform,nativeWindowsExecution:'not performed by this test',binaries,nativeFiles,utf8SpeechManifest:true,bundledRuntime:true,offlineModelSha256:'passed',fonts:fontCount,fontHashesAndLicenses:'passed',artwork:artwork.length};
+await fs.writeFile('docs/windows-package-test-result.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));

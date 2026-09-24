@@ -1,0 +1,259 @@
+{
+  "version": "0.6.1",
+  "testedAt": "2026-09-24T09:39:28.972Z",
+  "platform": "darwin",
+  "arch": "x64",
+  "packagedApp": true,
+  "theme": "neutral black / gray / white",
+  "browserTests": 12,
+  "keyboardFocus": true,
+  "primaryHover": true,
+  "compactViewport": {
+    "width": 1120,
+    "height": 740,
+    "noHorizontalOverflow": true
+  },
+  "mediaColorsPreserved": true,
+  "checks": [
+    {
+      "name": "home",
+      "styles": [
+        {
+          "selector": ".project-home",
+          "background": "rgb(16, 16, 16)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(232, 232, 232)"
+        },
+        {
+          "selector": ".home-header",
+          "background": "rgba(0, 0, 0, 0)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(232, 232, 232)"
+        },
+        {
+          "selector": ".home-art-frame",
+          "background": "rgba(0, 0, 0, 0)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(51, 51, 51)"
+        },
+        {
+          "selector": ".home-art-hill",
+          "background": "rgb(85, 85, 85)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(232, 232, 232)"
+        },
+        {
+          "selector": ".home-art-timeline",
+          "background": "rgb(37, 37, 37)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(107, 107, 107)"
+        },
+        {
+          "selector": ".primary-button",
+          "background": "rgb(245, 245, 245)",
+          "color": "rgb(20, 20, 20)",
+          "border": "rgb(20, 20, 20)"
+        }
+      ]
+    },
+    {
+      "name": "create project",
+      "styles": [
+        {
+          "selector": ".home-create-modal",
+          "background": "rgb(27, 27, 27)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(72, 72, 72)"
+        },
+        {
+          "selector": ".home-create-modal input",
+          "background": "rgb(48, 48, 48)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(107, 107, 107)"
+        },
+        {
+          "selector": ".home-create-modal select",
+          "background": "rgb(48, 48, 48)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(107, 107, 107)"
+        }
+      ]
+    },
+    {
+      "name": "editor",
+      "styles": [
+        {
+          "selector": ".app-header",
+          "background": "rgb(20, 20, 20)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(232, 232, 232)"
+        },
+        {
+          "selector": ".brand-mark",
+          "background": "rgb(245, 245, 245)",
+          "color": "rgb(20, 20, 20)",
+          "border": "rgb(20, 20, 20)"
+        },
+        {
+          "selector": ".tool-nav",
+          "background": "rgb(20, 20, 20)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(232, 232, 232)"
+        },
+        {
+          "selector": ".tool-nav>button.active",
+          "background": "rgb(53, 53, 53)",
+          "color": "rgb(245, 245, 245)",
+          "border": "rgb(245, 245, 245)"
+        },
+        {
+          "selector": ".library-panel",
+          "background": "rgb(27, 27, 27)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(232, 232, 232)"
+        },
+        {
+          "selector": ".inspector",
+          "background": "rgb(27, 27, 27)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(232, 232, 232)"
+        },
+        {
+          "selector": ".timeline",
+          "background": "rgb(20, 20, 20)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(232, 232, 232)"
+        },
+        {
+          "selector": ".timeline-toolbar",
+          "background": "rgb(27, 27, 27)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(232, 232, 232)"
+        },
+        {
+          "selector": ".timeline-scroll",
+          "background": "rgb(20, 20, 20)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(232, 232, 232)"
+        },
+        {
+          "selector": ".timeline-clip.selected",
+          "background": "rgb(64, 64, 64)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(245, 245, 245)"
+        },
+        {
+          "selector": ".primary-button",
+          "background": "rgb(245, 245, 245)",
+          "color": "rgb(20, 20, 20)",
+          "border": "rgb(20, 20, 20)"
+        }
+      ]
+    },
+    {
+      "name": "selected effect",
+      "styles": [
+        {
+          "selector": ".fx-card.enabled",
+          "background": "rgb(48, 48, 48)",
+          "color": "rgb(255, 255, 255)",
+          "border": "rgb(92, 92, 92)"
+        },
+        {
+          "selector": ".enabled .fx-check",
+          "background": "rgb(245, 245, 245)",
+          "color": "rgb(20, 20, 20)",
+          "border": "rgb(245, 245, 245)"
+        },
+        {
+          "selector": ".fx-enabled",
+          "background": "rgb(37, 37, 37)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(72, 72, 72)"
+        },
+        {
+          "selector": ".fx-special-settings",
+          "background": "rgb(37, 37, 37)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(72, 72, 72)"
+        }
+      ]
+    },
+    {
+      "name": "captions",
+      "styles": [
+        {
+          "selector": ".caption-mode",
+          "background": "rgb(37, 37, 37)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(72, 72, 72)"
+        },
+        {
+          "selector": ".caption-mode button.active",
+          "background": "rgb(53, 53, 53)",
+          "color": "rgb(245, 245, 245)",
+          "border": "rgb(245, 245, 245)"
+        }
+      ]
+    },
+    {
+      "name": "caption batch",
+      "styles": [
+        {
+          "selector": ".batch-editor",
+          "background": "rgb(27, 27, 27)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(72, 72, 72)"
+        },
+        {
+          "selector": ".batch-settings",
+          "background": "rgba(0, 0, 0, 0)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(232, 232, 232)"
+        },
+        {
+          "selector": ".batch-row",
+          "background": "rgba(0, 0, 0, 0)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(232, 232, 232)"
+        },
+        {
+          "selector": ".batch-footer",
+          "background": "rgba(0, 0, 0, 0)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(72, 72, 72)"
+        }
+      ]
+    },
+    {
+      "name": "export",
+      "styles": [
+        {
+          "selector": ".export-modal",
+          "background": "rgb(27, 27, 27)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(72, 72, 72)"
+        },
+        {
+          "selector": ".export-settings",
+          "background": "rgba(0, 0, 0, 0)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(232, 232, 232)"
+        },
+        {
+          "selector": ".export-jobs",
+          "background": "rgba(0, 0, 0, 0)",
+          "color": "rgb(232, 232, 232)",
+          "border": "rgb(232, 232, 232)"
+        },
+        {
+          "selector": ".export-start",
+          "background": "rgb(245, 245, 245)",
+          "color": "rgb(20, 20, 20)",
+          "border": "rgb(20, 20, 20)"
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

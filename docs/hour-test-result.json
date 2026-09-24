@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "note": "320×180, 24fps timing and pipeline verification; not a 4K stress benchmark",
+  "duration": "3600.000000",
+  "frames": "86400",
+  "audioDuration": "3600.000000",
+  "segments": 364,
+  "elapsedSeconds": 86.638,
+  "parentPeakRssMiB": 96.7,
+  "output": "/var/folders/ff/1ctz97qd2n12pzj54hd1rd0r0000gn/T/mycut-hour-test-2Ucw5K/one-hour.mp4"
+}

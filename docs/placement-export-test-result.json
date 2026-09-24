@@ -1,0 +1,32 @@
+{
+  "version": "0.6.6",
+  "testedAt": "2026-09-24T10:56:22.441Z",
+  "platform": "darwin",
+  "arch": "x64",
+  "resolution": 720,
+  "frames": 165,
+  "duration": 5.5,
+  "textStarts": [
+    0,
+    30
+  ],
+  "separateTrackDissolve": true,
+  "pixels": {
+    "before": [
+      254,
+      0,
+      0
+    ],
+    "middle": [
+      118,
+      1,
+      136
+    ],
+    "after": [
+      0,
+      0,
+      255
+    ]
+  },
+  "output": "/var/folders/ff/1ctz97qd2n12pzj54hd1rd0r0000gn/T/mycut-placement-export-bM9Ui7/exports/ff094c4e-fa21-4748-b3b4-34fdb7227708/output.mp4"
+}

@@ -1,0 +1,3 @@
+import {existsSync} from 'node:fs';
+import { defineConfig } from '@playwright/test';
+export default defineConfig({testDir:'./tests/ui',timeout:60000,workers:1,use:{baseURL:'http://127.0.0.1:4319',viewport:{width:1500,height:950},launchOptions:{executablePath:process.env.PLAYWRIGHT_CHROME_PATH??(process.platform==='darwin'&&existsSync('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')?'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome':undefined),args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']},headless:true},webServer:{command:'node --import tsx scripts/test-server.ts',url:'http://127.0.0.1:4319/api/health',reuseExistingServer:false,timeout:30000},reporter:'list'});

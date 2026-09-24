@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { newProject, makeClip, splitClip, parseSrt, toSrt, evaluateClip, ProjectSchema, endFrame } from '../shared/model';
+import { keyExpression, segmentPlan, tempo, outputSize } from '../server/render';
+
+test('splitting accelerated media preserves source continuity and keyframe interpolation',()=>{
+ const c=makeClip({kind:'video',mediaId:crypto.randomUUID(),trackId:'main',start:30,duration:300,sourceIn:5,speed:2,keyframes:[{frame:0,x:0,y:0,scale:1,opacity:1},{frame:300,x:1,y:0,scale:2,opacity:.2}]});
+ const [a,b]=splitClip(c,180,30);assert.equal(a.duration,150);assert.equal(b.sourceIn,15);assert.equal(b.start,180);assert.equal(a.duration+b.duration,c.duration);assert.deepEqual(evaluateClip(a,150),evaluateClip(b,0));assert.equal(evaluateClip(b,75).scale,1.75);
+});
+test('SRT supports one-hour timestamps, CRLF, BOM and multiline round trips',()=>{const p=newProject();p.clips=parseSrt('\uFEFF1\r\n01:00:00,000 --> 01:00:02,500\r\n你好\r\nMyCut\r\n',p.fps);assert.equal(p.clips.length,1);assert.equal(p.clips[0].start,108000);assert.equal(p.clips[0].duration,75);assert.match(toSrt(p),/01:00:00,000 --> 01:00:02,500/);assert.equal(parseSrt(toSrt(p),p.fps)[0].text,'你好\nMyCut');});
+test('one-hour timeline produces bounded ten-second work units with exact frame coverage',()=>{const p=newProject();p.clips=[makeClip({kind:'shape',trackId:'main',start:0,duration:108000}),makeClip({kind:'text',trackId:'text',start:299,duration:2})];const plan=segmentPlan(p);assert.equal(plan[0].from,0);assert.equal(plan.at(-1)?.to,108000);assert.equal(plan.reduce((n,s)=>n+s.to-s.from,0),108000);assert.ok(plan.every(s=>s.to-s.from<=300));assert.ok(plan.some(s=>s.from===299&&s.to===300));assert.equal(endFrame(p),108000);});
+test('rejects invalid source and out-of-range or conflicting project data',()=>{const p=newProject();const c=makeClip({kind:'text',trackId:'text',start:0,duration:30});assert.equal(ProjectSchema.safeParse({...p,clips:[c,c]}).success,false);assert.equal(ProjectSchema.safeParse({...p,width:1921}).success,false);assert.equal(ProjectSchema.safeParse({...p,clips:[{...c,kind:'video'}]}).success,false);assert.equal(ProjectSchema.safeParse({...p,clips:[{...c,x:Infinity}]}).success,false);});
+test('output dimensions remain even and speed chain supports quarter speed',()=>{const p={...newProject(),width:1080,height:1920};assert.deepEqual(outputSize(p,1080),{width:1080,height:1920});assert.equal(tempo(.25),'atempo=0.5,atempo=0.5');assert.equal(tempo(4),'atempo=2,atempo=2');});
+test('native keyframe expression is derived from clip-relative time',()=>{const c=makeClip({kind:'shape',trackId:'main',start:0,duration:60,keyframes:[{frame:0,x:0,y:0,scale:1,opacity:1},{frame:60,x:1,y:1,scale:2,opacity:0}]});assert.equal(keyExpression(c,'scale','t',30),'if(lt(t,2),1+(1)*clip((t-0)/2,0,1),2)');});

@@ -1,0 +1,13 @@
+{
+  "packagedApp": true,
+  "fonts": 20,
+  "nativeExport": "passed",
+  "nativeEffects": 28,
+  "karaokeExport": true,
+  "acousticWordTiming": true,
+  "duration": 1,
+  "nativeFilePicker": "passed",
+  "nativeProjectOpen": "passed",
+  "packagedSpeech": "passed",
+  "root": "/var/folders/ff/1ctz97qd2n12pzj54hd1rd0r0000gn/T/mycut-desktop-test-xCXlZN"
+}

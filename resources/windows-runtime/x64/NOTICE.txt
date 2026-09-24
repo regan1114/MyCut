@@ -1,0 +1,3 @@
+Microsoft Visual C++ v14 Runtime, x64. Copyright Microsoft Corporation.
+Redistribution terms: https://aka.ms/VCRedistLicense
+Source and checksums: manifest.json

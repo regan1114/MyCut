@@ -1,0 +1,17 @@
+{
+  "version": "0.6.6",
+  "testedAt": "2026-09-24T10:57:43.055Z",
+  "platform": "darwin",
+  "arch": "x64",
+  "packagedApp": true,
+  "nativeCloseReturnsHome": true,
+  "waitsForSave": true,
+  "editsDuringSavePreserved": true,
+  "repeatedCloseSafe": true,
+  "failedSaveKeepsEditor": true,
+  "retrySaveOnClose": true,
+  "exportContinuesOnHome": true,
+  "managerCloseStillCloses": true,
+  "explicitQuitStillQuits": true,
+  "errors": []
+}

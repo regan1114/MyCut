@@ -1,0 +1,79 @@
+{
+  "version": "0.6.11",
+  "testedAt": "2026-09-24T14:06:47.298Z",
+  "buildHost": "darwin-x64",
+  "unitTests": 46,
+  "unitTestsVersion": "0.6.11",
+  "browserTests": 25,
+  "browserEffectsRecheck": 3,
+  "effectCount": 40,
+  "artworkCount": 53,
+  "nativeEffectsTest": "effects-test-result.json",
+  "nativeEffectsTestVersion": "0.6.11",
+  "browserTestScope": "All 25 UI cases passed; 3 effect cases rerun after halftone optimization. Covers 12 new artworks and preview changes, global/timed effect persistence, undo, audio rhythm and existing editor workflows",
+  "interfaceNativeTest": "interface-darwin-x64-test-result.json",
+  "interfaceNativeTestVersion": "0.6.11",
+  "fontsNativeTestVersion": "0.6.8",
+  "fontsNativeTest": "fonts-darwin-x64-test-result.json",
+  "placementExportTest": "placement-export-test-result.json",
+  "placementExportVersion": "0.6.6",
+  "previewPerformance": "preview-performance-test-result.json",
+  "fontCount": 40,
+  "fontDistribution": {
+    "traditionalChinese": 10,
+    "latin": 30
+  },
+  "fontHashesAndLicenses": "verified for all three packages",
+  "staticTextRenderer": "Shared preview/karaoke canvas layout; cached PNGs preserve selected Latin fonts in mixed CJK text",
+  "basicExportVersion": "0.6.4",
+  "basicExport": "720p / 6 seconds / 180 frames; pause, disk state reload and resume passed",
+  "previousFullBrowserTests": {
+    "version": "0.6.1",
+    "passed": 12
+  },
+  "closeEditorNativeTestVersion": "0.6.6",
+  "closeEditorNativeTest": "close-editor-darwin-x64-test-result.json",
+  "quickCreateNativeTestVersion": "0.6.2",
+  "quickCreateNativeTest": "quick-create-test-result.json",
+  "themeNativeTestVersion": "0.6.1",
+  "themeNativeTest": "theme-test-result.json",
+  "previousNativeFunctionalVersion": "0.6.0",
+  "macNativeTest": "desktop-darwin-x64-test-result.json",
+  "macStaticChecks": "mac-packages-test-result.json",
+  "windowsStaticChecks": "windows-package-test-result.json",
+  "portableNativeTest": "portable-desktop-darwin-x64-test-result.json",
+  "workflowNativeTest": "workflow-test-result.json",
+  "nativeWindowsExecution": "pending Windows hardware or CI run",
+  "appleSiliconNativeExecution": "pending Apple Silicon hardware or CI run",
+  "crossPlatformPackageTransfer": "Format shared; native round trip verified between isolated Intel Mac data stores only",
+  "oneHourVideo": "New effects seek deterministically at one hour; no new full-hour export. Historical Mac 320x180 24fps reports cover earlier effects. 1080p/4K and Windows full-hour execution not verified",
+  "payloadsMatchCurrentBuild": [
+    "darwin-x64",
+    "darwin-arm64",
+    "win32-x64"
+  ],
+  "renderer": "index-BkA2-tKW.js",
+  "stylesheet": "index-BtynjHT-.css",
+  "artifacts": [
+    {
+      "name": "MyCut-0.6.11-Windows-x64-Setup.exe",
+      "bytes": 432545798,
+      "sha256": "a0d65a0eb4a51722c8f09548686f25b2fbc968d8757a024859469f61ddb9b7f4"
+    },
+    {
+      "name": "MyCut-0.6.11-Windows-x64.zip",
+      "bytes": 517888773,
+      "sha256": "815324e30e6a79ade2f4cdd9b3eb06a1b50fd426ed9c8d27b577d39bb8ee12fa"
+    },
+    {
+      "name": "MyCut-0.6.11-macOS-arm64.zip",
+      "bytes": 468411746,
+      "sha256": "6a33532cccfa55328f323aa8a4312a6ac64bb30fea142ee83af38e1af7ed2f8f"
+    },
+    {
+      "name": "MyCut-0.6.11-macOS-x64.zip",
+      "bytes": 499229757,
+      "sha256": "fb9918cda694cdb0a2b3868d684d79ce1ff5b1dbd2bd20c87d4ed7c4e822c8ed"
+    }
+  ]
+}

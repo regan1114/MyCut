@@ -1,0 +1,8 @@
+{
+  "platform": "darwin",
+  "arch": "arm64",
+  "version": "1.8.6",
+  "sha256": "e5d405cde7c9c3c0da402ace3a834064195b742b6c3c7c0527080c3349078272",
+  "utf8Manifest": false,
+  "minimumMacOS": "14.0"
+}

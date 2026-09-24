@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "effects": [
+    "spectrum",
+    "bloom",
+    "lightSweep",
+    "leaves",
+    "dandelion",
+    "embers",
+    "stars",
+    "vhs",
+    "ripple",
+    "kaleidoscope",
+    "mirror",
+    "raindrops"
+  ],
+  "note": "320×180, 24fps timing and pipeline verification; not a 4K stress benchmark",
+  "duration": "3600.000000",
+  "frames": "86400",
+  "audioDuration": "3600.000000",
+  "segments": 364,
+  "elapsedSeconds": 951.168,
+  "parentPeakRssMiB": 235.2,
+  "output": "/var/folders/ff/1ctz97qd2n12pzj54hd1rd0r0000gn/T/mycut-hour-test-HxHhpW/one-hour.mp4"
+}

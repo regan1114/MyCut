@@ -1,0 +1,35 @@
+import { useEffect, useRef, useState } from 'react';
+import { createPortal, flushSync } from 'react-dom';
+import { Check, Music2, Pause, Play, X } from 'lucide-react';
+import type { Clip, FontInfo } from '../../shared/model';
+import { defaultKaraoke, drawTextFrame, KaraokeSchema, lyricUnits, validWordTiming, type WordTiming } from '../../shared/karaoke';
+type Props={clip:Clip;fps:number;frame:number;playing:boolean;fonts:FontInfo[];projectWidth:number;onSeek:(frame:number)=>void;onPlaying:(playing:boolean)=>void;onChange:(patch:Partial<Clip>)=>void};
+type Row={text:string;start:string;end:string};
+function KaraokeEditor({clip:c,fps,frame,playing,fonts,projectWidth,onSeek,onPlaying,onChange,onClose}:Props&{onClose:()=>void}){
+ const initial=validWordTiming(c.text,c.karaoke?.words??[])?c.karaoke.words.map(w=>({text:w.text,start:String((w.start-c.karaoke.offset)/fps),end:String((w.end-c.karaoke.offset)/fps)})):lyricUnits(c.text).map(text=>({text,start:'',end:''}));
+ const [rows,setRows]=useState<Row[]>(initial),[cursor,setCursor]=useState(0),[page,setPage]=useState(0),[error,setError]=useState('');const canvas=useRef<HTMLCanvasElement>(null);
+ const words:WordTiming[]=rows.filter(r=>r.start!==''&&r.end!=='').map(r=>({text:r.text,start:Math.round(Number(r.start)*fps),end:Math.round(Number(r.end)*fps)}));const text=rows.map(r=>r.text).join(''),ready=rows.length===words.length&&validWordTiming(text,words);
+ useEffect(()=>{if(playing&&frame>=c.start+c.duration){onPlaying(false);onSeek(c.start+c.duration-1);}},[frame,playing,c.start,c.duration]);
+ useEffect(()=>{const ctx=canvas.current?.getContext('2d');if(ctx)drawTextFrame(ctx,{...c,text,karaoke:{...c.karaoke,enabled:ready,words,offset:0}},640,160,fonts,projectWidth,frame-c.start);},[c,frame,rows,fonts,ready,projectWidth]);
+ const playFrom=(at:number)=>{flushSync(()=>{onPlaying(false);onSeek(at);});onPlaying(true);};
+ const update=(i:number,patch:Partial<Row>)=>{setRows(values=>values.map((r,j)=>i===j?{...r,...patch}:r));setError('');};
+ const stamp=()=>{const at=(frame-c.start)/fps;if(at<0||at>c.duration/fps){setError('請將播放頭移到這個文字片段內');return;}if(cursor>0&&at<=Number(rows[cursor-1].start)){setError('下一個時間點必須晚於上一字的起點');return;}
+   setRows(values=>values.map((r,i)=>i===cursor?{...r,start:String(at)}:i===cursor-1?{...r,end:String(at)}:r));setCursor(v=>Math.min(rows.length,v+1));setPage(Math.floor(Math.min(rows.length-1,cursor)/50));setError('');
+ };
+ const commit=()=>{try{if(!ready)throw new Error('每個字詞都需要有效且依序排列的起訖時間');const karaoke=KaraokeSchema.parse({...c.karaoke,enabled:true,words,offset:0,source:'manual'});onChange({text,name:text.slice(0,30),karaoke});onClose();}catch(e){setError(e instanceof Error?e.message:'請檢查時間');}};
+ return <section className="karaoke-editor" role="dialog" aria-modal="true" aria-label="逐字校時" onKeyDown={e=>{if(e.key==='Escape')onClose();}}>
+  <div className="modal-header"><div><span className="eyebrow">KARAOKE TIMING</span><h2>逐字校時</h2></div><button data-tooltip="關閉逐字校時" aria-label="關閉逐字校時" onClick={onClose}><X size={18}/></button></div>
+  <div className="karaoke-live"><canvas ref={canvas} width={640} height={160}/></div>
+  <p className="field-note">播放原本的音軌，逐字打點或輸入秒數。時間以此片段開頭為 0；模型估計時間可在這裡校正。</p>
+  <div className="karaoke-transport"><button className="secondary-button" onClick={()=>{if(!playing&&(frame<c.start||frame>=c.start+c.duration-1))playFrom(c.start);else onPlaying(!playing);}}>{playing?<Pause size={14}/>:<Play size={14}/>} {playing?'暫停校時播放':'播放校時音訊'}</button><button onClick={()=>{onPlaying(false);onSeek(c.start);}}>回到片段開頭</button><output>{((frame-c.start)/fps).toFixed(3)} 秒</output></div>
+  <div className="karaoke-marking"><button className="secondary-button" onClick={()=>{setRows(lyricUnits(text).map(text=>({text,start:'',end:''})));setCursor(0);setPage(0);setError('');onPlaying(false);onSeek(c.start);}}>按字重新分段</button><button className="secondary-button" onClick={()=>{setRows(rows.map(r=>({...r,start:'',end:''})));setCursor(0);setPage(0);setError('');onSeek(c.start);onPlaying(false);}}>重新打點</button><button className="primary-button" disabled={!rows.length} onClick={stamp}>{cursor<rows.length?`標記第 ${cursor+1} 字起點`:'標記最後結束'}</button><span>先標起點，再標下一字，最後標結束。</span></div>
+  <div className="karaoke-table-head"><span>字詞</span><span>起點（秒）</span><span>終點（秒）</span><span>播放頭</span></div>
+  <div className="karaoke-rows">{rows.slice(page*50,(page+1)*50).map((r,j)=>{const i=page*50+j;return <div key={i} className={`karaoke-row ${r.start!==''&&frame-c.start>=Number(r.start)*fps&&frame-c.start<Number(r.end)*fps?'current':''}`}><textarea rows={1} aria-label={`字詞 ${i+1}`} value={r.text} onChange={e=>update(i,{text:e.target.value})}/><input type="number" aria-label={`字詞 ${i+1} 起點`} step={1/fps} value={r.start} onChange={e=>update(i,{start:e.target.value})}/><input type="number" aria-label={`字詞 ${i+1} 終點`} step={1/fps} value={r.end} onChange={e=>update(i,{end:e.target.value})}/><div><button data-tooltip={`第 ${i+1} 字起點設為播放頭`} aria-label={`第 ${i+1} 字起點設為播放頭`} onClick={()=>update(i,{start:String((frame-c.start)/fps)})}>起</button><button data-tooltip={`第 ${i+1} 字終點設為播放頭`} aria-label={`第 ${i+1} 字終點設為播放頭`} onClick={()=>update(i,{end:String((frame-c.start)/fps)})}>迄</button><button data-tooltip={`播放第 ${i+1} 字`} aria-label={`播放第 ${i+1} 字`} disabled={r.start===''} onClick={()=>{playFrom(Math.max(0,c.start+Math.round(Number(r.start)*fps)));}}><Play size={12}/></button></div></div>;})}</div>
+  <div className="karaoke-editor-footer"><div><button disabled={!page} onClick={()=>setPage(page-1)}>上一頁</button><span>{page+1} / {Math.max(1,Math.ceil(rows.length/50))}</span><button disabled={(page+1)*50>=rows.length} onClick={()=>setPage(page+1)}>下一頁</button></div><span>{ready?`${words.length} 個字詞已對齊`:'尚有字詞需要校時'}</span><button className="primary-button" onClick={commit}><Check size={15}/>儲存逐字時間</button></div>{error&&<p className="karaoke-error" role="alert">{error}</p>}
+ </section>;
+}
+export default function KaraokePanel(props:Props){
+ const {clip:c,onChange,onPlaying}=props,[open,setOpen]=useState(false),value=c.karaoke??defaultKaraoke(),valid=validWordTiming(c.text,value.words);
+ const close=()=>{onPlaying(false);setOpen(false);};
+ return <section className="property-section karaoke-panel"><h4><Music2 size={14}/>卡拉 OK 歌詞</h4><label className="check-field"><input aria-label="啟用卡拉 OK 高亮" type="checkbox" checked={value.enabled&&valid} disabled={!valid} onChange={e=>onChange({karaoke:{...value,enabled:e.target.checked}})}/>逐字填色高亮</label><label className="color-field">高亮顏色<input aria-label="歌詞高亮顏色" type="color" value={value.color} onChange={e=>onChange({karaoke:{...value,color:e.target.value}})}/></label><button className="wide-button" onClick={()=>{onPlaying(false);setOpen(true);}}>逐字校時</button><p className="field-note">{valid?`${value.words.length} 個字詞 · ${value.source==='whisper'?'模型估計，可人工校正':'手動校時'}`:'尚無相符的逐字時間。可在自動歌詞開啟逐字辨識，或手動校時。修改文字後需重新校時。'}</p>{open&&createPortal(<div className="modal-backdrop"><KaraokeEditor {...props} onClose={close}/></div>,document.body)}</section>;
+}

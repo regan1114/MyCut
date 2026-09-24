@@ -1,0 +1,4 @@
+a0d65a0eb4a51722c8f09548686f25b2fbc968d8757a024859469f61ddb9b7f4  MyCut-0.6.11-Windows-x64-Setup.exe
+815324e30e6a79ade2f4cdd9b3eb06a1b50fd426ed9c8d27b577d39bb8ee12fa  MyCut-0.6.11-Windows-x64.zip
+6a33532cccfa55328f323aa8a4312a6ac64bb30fea142ee83af38e1af7ed2f8f  MyCut-0.6.11-macOS-arm64.zip
+fb9918cda694cdb0a2b3868d684d79ce1ff5b1dbd2bd20c87d4ed7c4e822c8ed  MyCut-0.6.11-macOS-x64.zip

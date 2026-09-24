@@ -1,0 +1,29 @@
+{
+  "testedAt": "2026-09-24T10:10:20.030Z",
+  "version": "0.6.4",
+  "platform": "darwin",
+  "arch": "x64",
+  "packagedApp": false,
+  "fontCount": 40,
+  "allBrowserFontsLoaded": true,
+  "favoritesSurviveRestart": true,
+  "origins": [
+    "http://127.0.0.1:51111",
+    "http://127.0.0.1:51152"
+  ],
+  "defaultRestoredAfterClearing": true,
+  "newProjectDefault": true,
+  "nativeExport": {
+    "duration": 3,
+    "resolution": 720,
+    "fonts": [
+      "chenyuluoyan",
+      "chirongoroundtc",
+      "dmsans"
+    ],
+    "ordinaryText": true,
+    "karaoke": true,
+    "output": "/var/folders/ff/1ctz97qd2n12pzj54hd1rd0r0000gn/T/mycut-fonts-RDjVoj/exports/f19bb85d-942a-40b5-b80a-6437a62fb43e/output.mp4"
+  },
+  "root": "/var/folders/ff/1ctz97qd2n12pzj54hd1rd0r0000gn/T/mycut-fonts-RDjVoj"
+}

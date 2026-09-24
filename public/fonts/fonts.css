@@ -1,0 +1,40 @@
+@font-face{font-family:'Noto Sans TC';src:url('/fonts/notosanstc/NotoSansTC[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Noto Serif TC';src:url('/fonts/notoseriftc/NotoSerifTC[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'LXGW WenKai TC';src:url('/fonts/lxgwwenkaitc/LXGWWenKaiTC-Regular.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Huninn';src:url('/fonts/huninn/Huninn-Regular.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Iansui';src:url('/fonts/iansui/Iansui-Regular.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Chocolate Classical Sans';src:url('/fonts/chocolateclassicalsans/ChocolateClassicalSans-Regular.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Chiron Hei HK';src:url('/fonts/chironheihk/ChironHeiHK[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Chiron Sung HK';src:url('/fonts/chironsunghk/ChironSungHK[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Chiron GoRound TC';src:url('/fonts/chirongoroundtc/ChironGoRoundTC[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'ChenYuluoyan 2.0';src:url('/fonts/chenyuluoyan/ChenYuluoyan-2.0-Thin.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Inter';src:url('/fonts/inter/Inter[opsz,wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Roboto';src:url('/fonts/roboto/Roboto[wdth,wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Open Sans';src:url('/fonts/opensans/OpenSans[wdth,wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Montserrat';src:url('/fonts/montserrat/Montserrat[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Poppins';src:url('/fonts/poppins/Poppins-Regular.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Lato';src:url('/fonts/lato/Lato-Regular.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Oswald';src:url('/fonts/oswald/Oswald[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Raleway';src:url('/fonts/raleway/Raleway[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Playfair Display';src:url('/fonts/playfairdisplay/PlayfairDisplay[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Merriweather';src:url('/fonts/merriweather/Merriweather[opsz,wdth,wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Bebas Neue';src:url('/fonts/bebasneue/BebasNeue-Regular.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Caveat';src:url('/fonts/caveat/Caveat[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Pacifico';src:url('/fonts/pacifico/Pacifico-Regular.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Space Grotesk';src:url('/fonts/spacegrotesk/SpaceGrotesk[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'DM Sans';src:url('/fonts/dmsans/DMSans[opsz,wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Manrope';src:url('/fonts/manrope/Manrope[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Outfit';src:url('/fonts/outfit/Outfit[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Plus Jakarta Sans';src:url('/fonts/plusjakartasans/PlusJakartaSans[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Nunito';src:url('/fonts/nunito/Nunito[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Quicksand';src:url('/fonts/quicksand/Quicksand[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Barlow';src:url('/fonts/barlow/Barlow-Regular.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Work Sans';src:url('/fonts/worksans/WorkSans[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Libre Baskerville';src:url('/fonts/librebaskerville/LibreBaskerville[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Lora';src:url('/fonts/lora/Lora[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Cormorant Garamond';src:url('/fonts/cormorantgaramond/CormorantGaramond[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Anton';src:url('/fonts/anton/Anton-Regular.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Righteous';src:url('/fonts/righteous/Righteous-Regular.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Patrick Hand';src:url('/fonts/patrickhand/PatrickHand-Regular.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Dancing Script';src:url('/fonts/dancingscript/DancingScript[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'JetBrains Mono';src:url('/fonts/jetbrainsmono/JetBrainsMono[wght].ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap;}

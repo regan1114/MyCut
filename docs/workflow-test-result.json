@@ -1,0 +1,19 @@
+{
+  "testedAt": "2026-09-24T08:56:23.950Z",
+  "platform": "darwin",
+  "arch": "x64",
+  "version": "0.6.0",
+  "timedEffects720p": true,
+  "frames": 120,
+  "duration": 4,
+  "pauseResume": true,
+  "absoluteTimeSlice": true,
+  "portableRestoredExport": true,
+  "cornerBrightness": {
+    "before": 125,
+    "fade": 98.0474074074074,
+    "inside": 59.50666666666667,
+    "after": 125
+  },
+  "root": "/var/folders/ff/1ctz97qd2n12pzj54hd1rd0r0000gn/T/mycut-workflow-geGyNZ"
+}

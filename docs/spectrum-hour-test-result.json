@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "duration": 3600,
+  "featureFrames": 180000,
+  "binaryBytes": 11700000,
+  "jsonBytes": 15600060,
+  "analysisAndCacheSeconds": 6.132,
+  "parentPeakRssMiB": 173,
+  "note": "Actual continuous one-hour tone; includes library waveform task, excludes FFmpeg memory.",
+  "root": "/var/folders/ff/1ctz97qd2n12pzj54hd1rd0r0000gn/T/mycut-spectrum-hour-yztXbv"
+}

@@ -1,0 +1,7 @@
+import type { Clip, FontInfo } from './model';
+const escape=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]!));
+export function clipSvg(c:Clip,width:number,height:number,fonts:FontInfo[],projectWidth=1920){
+  if(c.kind==='shape')return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${c.shape==='circle'?`<ellipse cx="${width/2}" cy="${height/2}" rx="${height*.24}" ry="${height*.24}" fill="${c.color}"/>`:`<rect x="${width*.2}" y="${height*.3}" width="${width*.6}" height="${height*.4}" rx="${height*.02}" fill="${c.color}"/>`}</svg>`;
+  const font=fonts.find(f=>f.id===c.fontId);const size=c.fontSize*width/projectWidth;const lines=c.text.split('\n');const lineHeight=size*1.4;const y=height/2-(lines.length-1)*lineHeight/2;const bg=c.textBackground?`<rect x="${width*.06}" y="${y-size*.85}" width="${width*.88}" height="${lines.length*lineHeight}" rx="${size*.2}" fill="#101112" fill-opacity="0.82"/>`:'';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${bg}<text text-anchor="middle" fill="${c.color}" font-family="${escape(font?.family??'Noto Sans TC')}, Noto Sans TC" font-size="${size}" font-weight="400">${lines.map((line,i)=>`<tspan x="${width/2}" y="${y+i*lineHeight+size*.35}">${escape(line)}</tspan>`).join('')}</text></svg>`;
+}

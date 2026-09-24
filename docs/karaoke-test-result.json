@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "segmentDifference": 0.17013310185185185,
+  "transparentLayerOrder": true,
+  "cancelCleanup": true,
+  "actualSpectralFeatures": true,
+  "karaokeWithEffects": "720p",
+  "recognition": [
+    {
+      "language": "en",
+      "seconds": 9.287,
+      "cues": 4,
+      "words": 19,
+      "text": "Welcome to my cut, today we are editing a video, the sun is shining and the sky is blue."
+    },
+    {
+      "language": "zh",
+      "seconds": 9.077,
+      "cues": 3,
+      "words": 21,
+      "text": "今天我們要來剪輯影片, 把每一句話變成字幕, 讓故事更清楚。"
+    }
+  ],
+  "root": "/var/folders/ff/1ctz97qd2n12pzj54hd1rd0r0000gn/T/mycut-karaoke-test-9HvGS3"
+}

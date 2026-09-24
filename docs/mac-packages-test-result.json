@@ -1,0 +1,31 @@
+{
+  "testedAt": "2026-09-24T14:04:59.380Z",
+  "reports": [
+    {
+      "arch": "x64",
+      "version": "0.6.11",
+      "minimumMacOS": "14.0",
+      "binaries": [
+        "Contents/Resources/app.asar.unpacked/node_modules/@napi-rs/canvas-darwin-x64/skia.darwin-x64.node",
+        "Contents/Resources/app.asar.unpacked/node_modules/@resvg/resvg-js-darwin-x64/resvgjs.darwin-x64.node"
+      ],
+      "modelSha256": "passed",
+      "fonts": 40,
+      "fontHashesAndLicenses": "passed",
+      "scope": "Static Mach-O, ASAR, fonts, model and deployment-target checks"
+    },
+    {
+      "arch": "arm64",
+      "version": "0.6.11",
+      "minimumMacOS": "14.0",
+      "binaries": [
+        "Contents/Resources/app.asar.unpacked/node_modules/@napi-rs/canvas-darwin-arm64/skia.darwin-arm64.node",
+        "Contents/Resources/app.asar.unpacked/node_modules/@resvg/resvg-js-darwin-arm64/resvgjs.darwin-arm64.node"
+      ],
+      "modelSha256": "passed",
+      "fonts": 40,
+      "fontHashesAndLicenses": "passed",
+      "scope": "Static Mach-O, ASAR, fonts, model and deployment-target checks"
+    }
+  ]
+}

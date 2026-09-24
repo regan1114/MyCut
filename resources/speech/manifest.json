@@ -1,0 +1,10 @@
+{
+  "engine": "whisper.cpp",
+  "version": "1.8.6",
+  "engineSource": "https://github.com/ggml-org/whisper.cpp/tree/v1.8.6",
+  "model": "ggml-small-q5_1.bin",
+  "modelBytes": 190085487,
+  "modelSha256": "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb",
+  "modelSource": "https://huggingface.co/ggerganov/whisper.cpp",
+  "license": "MIT"
+}

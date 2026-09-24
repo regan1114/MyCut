@@ -1,0 +1,17 @@
+{
+  "testedAt": "2026-09-24T09:08:31.585Z",
+  "version": "0.6.0",
+  "platform": "darwin",
+  "arch": "x64",
+  "packagedApp": true,
+  "nativeProjectPack": true,
+  "freshLibraryRestore": true,
+  "originalSourcesRemoved": true,
+  "mediaIdsRemapped": true,
+  "linkedInspectorTiming": true,
+  "groupsPreserved": true,
+  "timedEffectsPreserved": true,
+  "captionBatchPreserved": true,
+  "restored720pExport": true,
+  "root": "/var/folders/ff/1ctz97qd2n12pzj54hd1rd0r0000gn/T/mycut 可攜專案-HhERrT"
+}

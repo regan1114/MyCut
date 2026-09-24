@@ -1,0 +1,42 @@
+{
+  "testedAt": "2026-09-24T04:13:19.577Z",
+  "engine": "whisper.cpp 1.8.6",
+  "model": "small-q5_1",
+  "fixtures": "Original macOS synthetic speech and synthetic singing with a generated accompaniment tone",
+  "results": [
+    {
+      "language": "en",
+      "mode": "captions",
+      "audioSeconds": 5.040688,
+      "recognitionSeconds": 4.02,
+      "text": "Welcome to My Cut. Today we are editing a video. The sun is shining and the sky is blue.",
+      "cues": 2
+    },
+    {
+      "language": "zh",
+      "mode": "captions",
+      "audioSeconds": 6.208375,
+      "recognitionSeconds": 3.818,
+      "text": "今天我們要來剪輯影片,把每一句話變成字幕,讓故事 更清楚。",
+      "cues": 2
+    },
+    {
+      "language": "en",
+      "mode": "lyrics",
+      "audioSeconds": 14.211938,
+      "recognitionSeconds": 4.23,
+      "text": "We walk into the morning light We sing a song and feel alright",
+      "cues": 4
+    }
+  ],
+  "pauseResume": "passed",
+  "hourTimestamp": "passed",
+  "hourFile": {
+    "audioSeconds": 3600,
+    "chunks": 120,
+    "resumedFromChunk": 1,
+    "cues": 4,
+    "recognitionSeconds": 39.828,
+    "scope": "Real 3,600-second PCM file with speech at beginning/end and silence between. Not a continuous speech or dense music benchmark."
+  }
+}

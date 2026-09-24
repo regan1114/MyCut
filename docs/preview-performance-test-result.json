@@ -1,0 +1,31 @@
+{
+  "version": "0.6.8",
+  "testedAt": "2026-09-24T11:36:56.295758+00:00",
+  "platform": "darwin-x64",
+  "scope": "Chromium browser operation counters; 1201 three-second captions; about 1.1 seconds of static text playback plus one text edit",
+  "baselineVersion": "0.6.7",
+  "before": {
+    "initialFontLoads": 1201,
+    "newCanvasesDuringPlayback": 33,
+    "textPaintsDuringPlayback": 33,
+    "fontLoadsAfterEdit": 2402,
+    "captionCount": 1201
+  },
+  "after": {
+    "initialFontLoads": 1,
+    "newCanvasesDuringPlayback": 0,
+    "textPaintsDuringPlayback": 0,
+    "fontLoadsAfterEdit": 1,
+    "captionCount": 1201
+  },
+  "boundedTextSurfaces": 8,
+  "reusableOverflowSurface": 1,
+  "previewBounds": {
+    "width": 960,
+    "height": 540
+  },
+  "allConcurrentLayersStillRendered": true,
+  "karaokeSeekAndStylePixelsChecked": true,
+  "scopeLimit": "Counts are not end-to-end frame-rate or total application memory measurements. No new full-hour export benchmark.",
+  "delayedFontRefreshChecked": true
+}

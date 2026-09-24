@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "version": "0.4.1",
+  "svgImages": 41,
+  "effects": 28,
+  "transitions": 5,
+  "filters": 8,
+  "packagedImagesDecoded": true,
+  "cardActionsAndSave": true,
+  "errors": []
+}
