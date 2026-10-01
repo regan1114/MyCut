@@ -1,3 +1,4 @@
+import { LyricsBridge } from './lyrics';
 import { insertTimedClips } from '../shared/placement';
 import express from 'express';
 import busboy from 'busboy';
@@ -25,6 +26,7 @@ export async function startServer(options:{root?:string;port?:number;appRoot?:st
   const appRoot=options.appRoot??process.cwd();const root=options.root??path.join(appRoot,'.mycut');
   const fontRoot=unpackedPath(path.join(appRoot,'public/fonts'));const fonts:FontInfo[]=JSON.parse(await fs.readFile(path.join(fontRoot,'manifest.json'),'utf8'));
   await fs.mkdir(path.join(root,'projects'),{recursive:true});const library=new Library(root);await library.init();const jobs=new Jobs(path.join(root,'exports'),library,fonts,fontRoot);await jobs.init();const projects=new Projects(root,library);const portable=new PortableProjects(library,projects);const speech=new SpeechJobs(path.join(root,'captions'),library,appRoot);await speech.init();
+  const lyrics=new LyricsBridge(path.join(root,'lyrics'),library,appRoot);
   const rhythmControllers=new Set<AbortController>();
   const preferences=new Preferences(root,fonts);await preferences.init();
   const app=express();app.disable('x-powered-by');let port=options.port??Number(process.env.PORT??4318);
@@ -39,7 +41,7 @@ export async function startServer(options:{root?:string;port?:number;appRoot?:st
   const id=(s:string|string[])=>z.string().uuid().parse(s);
   const recordings=new Map<string,{file:string;seq:number;bytes:number}>();
   app.post('/api/recordings',async(_req,res)=>{const rid=randomUUID();const file=path.join(root,'media',`${rid}.webm`);await fs.writeFile(file,'');recordings.set(rid,{file,seq:0,bytes:0});res.json({id:rid});});
-  app.post('/api/recordings/:id/finish',async(req,res)=>{const rid=id(req.params.id);const recording=recordings.get(rid);if(!recording)throw new Error('錄音工作不存在');const file=path.join(root,'media',`${rid}.m4a`);await ffmpeg(['-i',recording.file,'-vn','-c:a','aac','-b:a','192k','-ar','48000',file]);await library.import(file,true,`旁白 ${new Date().toLocaleString('zh-TW')}.m4a`);recordings.delete(rid);await fs.rm(recording.file,{force:true});res.json(library.list());});
+  app.post('/api/recordings/:id/finish',async(req,res)=>{const rid=id(req.params.id);const recording=recordings.get(rid);if(!recording)throw new Error('錄音工作不存在');const file=path.join(root,'media',`${rid}.m4a`);await ffmpeg(['-i',recording.file,'-vn','-c:a','aac','-b:a','192k','-ar','48000',file]);const m=await library.import(file,true,`旁白 ${new Date().toLocaleString('zh-TW')}.m4a`);recordings.delete(rid);await fs.rm(recording.file,{force:true});res.json({media:library.list(),imported:[m.id]});});
   app.post('/api/recordings/:id/:seq',async(req,res)=>{const recording=recordings.get(id(req.params.id));if(!recording||Number(req.params.seq)!==recording.seq)throw new Error('錄音片段順序錯誤');let size=0;req.on('data',(chunk:Buffer)=>{size+=chunk.length;if(size>32*1024*1024)req.destroy(new Error('錄音片段過大'));});await pipeline(req,createWriteStream(recording.file,{flags:'a'}));recording.seq++;recording.bytes+=size;res.json({ok:true});});
   app.get('/api/health',async(_req,res)=>{const st=await fs.statfs(root);res.json({ok:true,platform:process.platform,arch:process.arch,encoders:availableEncoders(process.platform),ffmpeg:!!await fs.stat(ffmpegPath).catch(()=>null),fonts:fonts.length,freeBytes:st.bavail*st.bsize,root});});
   app.get('/api/fonts',(_req,res)=>res.json(fonts));
@@ -58,12 +60,17 @@ export async function startServer(options:{root?:string;port?:number;appRoot?:st
   app.get('/api/portable',(_req,res)=>res.json(portable.status));
   app.post('/api/portable/cancel',(_req,res)=>{portable.cancel();res.json({ok:true});});
   app.get('/api/projects',async(req,res)=>res.json(await projects.list(req.query.trash==='1')));
+  app.post('/api/projects',async(req,res)=>res.status(201).json(await projects.create(req.body)));
   app.put('/api/projects/:id',async(req,res)=>{if(req.body.id!==id(req.params.id))throw new Error('專案 ID 不一致');const p=await projects.save(req.body);res.json({savedAt:p.updatedAt});});
   app.get('/api/projects/:id',async(req,res)=>res.json(await projects.read(id(req.params.id))));
   app.post('/api/projects/:id/rename',async(req,res)=>res.json(await projects.rename(id(req.params.id),z.string().trim().min(1).max(120).parse(req.body.name))));
   app.post('/api/projects/:id/duplicate',async(req,res)=>res.json(await projects.duplicate(id(req.params.id))));
   app.post('/api/projects/:id/trash',async(req,res)=>{await projects.move(id(req.params.id));res.json({ok:true});});
   app.post('/api/projects/:id/restore',async(req,res)=>{await projects.move(id(req.params.id),true);res.json({ok:true});});
+  app.get('/api/lyrics/health',async(_req,res)=>res.json(await lyrics.health()));
+  app.post('/api/lyrics/align',async(req,res)=>res.status(202).json(await lyrics.create(req.body.project,req.body.options)));
+  app.get('/api/lyrics/jobs/:id',async(req,res)=>res.json(await lyrics.get(id(req.params.id))));
+  app.post('/api/lyrics/jobs/:id/cancel',async(req,res)=>res.json(await lyrics.cancel(id(req.params.id))));
   app.get('/api/speech',async(_req,res)=>res.json(await speech.capabilities()));
   app.get('/api/captions',async(req,res)=>res.json(speech.list(typeof req.query.projectId==='string'?id(req.query.projectId):undefined)));
   app.post('/api/captions',async(req,res)=>res.json(await speech.create(req.body.project,req.body.options)));
@@ -87,7 +94,7 @@ export async function startServer(options:{root?:string;port?:number;appRoot?:st
   app.get('/{*splat}',(req,res)=>{if(req.path.startsWith('/api/')||req.path.startsWith('/media/'))return res.status(404).json({error:'找不到此資源'});res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");res.sendFile(path.join(appRoot,'dist/index.html'));});
   app.use((e:any,_req:express.Request,res:express.Response,_next:express.NextFunction)=>{if(res.headersSent)return;res.status(e instanceof z.ZodError?400:500).json({error:e instanceof z.ZodError?e.issues.map(i=>i.message).join('；'):e.message??'處理失敗'});});
   const server=await new Promise<ReturnType<typeof app.listen>>((resolve,reject)=>{const s=app.listen(port,'127.0.0.1',(error?:Error)=>error?reject(error):resolve(s));s.once('error',reject);});port=(server.address() as {port:number}).port;
-  return {server,port,library,jobs,projects,speech,portable,root,close:()=>{portable.cancel();for(const controller of rhythmControllers)controller.abort();library.close();jobs.close();speech.close();server.close();}};
+  return {server,port,library,jobs,projects,speech,portable,root,close:()=>{lyrics.close();portable.cancel();for(const controller of rhythmControllers)controller.abort();library.close();jobs.close();speech.close();server.close();}};
 }
 if(process.argv[1]&&fileURLToPath(import.meta.url)===path.resolve(process.argv[1])){
   const service=await startServer();console.log(`MyCut running at http://127.0.0.1:${service.port}`);for(const signal of ['SIGINT','SIGTERM'] as const)process.on(signal,()=>{service.close();process.exit(0);});

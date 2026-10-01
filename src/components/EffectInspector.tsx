@@ -19,6 +19,6 @@ export default function EffectInspector({project,media,clip:c,frame,update,check
       <button className="wide-button" onClick={()=>patch({keyframes:c.keyframes.some(k=>k.frame===relative)?c.keyframes.filter(k=>k.frame!==relative):[...c.keyframes,key].sort((a,b)=>a.frame-b.frame)})}><Diamond size={14}/>{c.keyframes.some(k=>k.frame===relative)?'移除強度關鍵影格':'加入強度關鍵影格'}</button>
       <div className="keyframe-list">{c.keyframes.map(k=><div key={k.frame}><button onClick={()=>onSeek(c.start+k.frame)}>{(k.frame/project.fps).toFixed(2)} s</button><span>{Math.round(k.opacity*100)}%</span><button aria-label={`移除 ${k.frame} 影格的特效強度`} data-tooltip={`移除 ${k.frame} 影格的特效強度`} onClick={()=>patch({keyframes:c.keyframes.filter(x=>x.frame!==k.frame)})}>×</button></div>)}</div>
     </section>
-    <EffectControls value={c.effects!} onChange={(effects,history)=>patch({effects},history)} onCheckpoint={checkpoint}/>
+    <EffectControls value={c.effects!} fixedEffectId={c.effects!.enabled[0]??'nostalgic'} onChange={(effects,history)=>patch({effects},history)} onCheckpoint={checkpoint}/>
   </div></aside>;
 }

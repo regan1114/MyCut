@@ -3,7 +3,7 @@ import type { Clip, FontInfo } from './model';
 const frame=z.number().int().min(-24*60*60*60).max(24*60*60*60);
 export const WordTimingSchema=z.object({text:z.string().min(1).max(3000),start:frame,end:frame}).refine(w=>w.end>w.start,'字詞結束時間必須晚於開始');
 export type WordTiming=z.infer<typeof WordTimingSchema>;
-export const KaraokeSchema=z.object({enabled:z.boolean().default(false),color:z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#ffe27a'),words:z.array(WordTimingSchema).max(3000).default([]),offset:frame.default(0),source:z.enum(['whisper','manual']).default('manual')});
+export const KaraokeSchema=z.object({enabled:z.boolean().default(false),color:z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#ffe27a'),words:z.array(WordTimingSchema).max(3000).default([]),offset:frame.default(0),source:z.enum(['whisper','manual','alignment']).default('manual')});
 export type Karaoke=z.infer<typeof KaraokeSchema>;
 export const defaultKaraoke=():Karaoke=>KaraokeSchema.parse({});
 export function validWordTiming(text:string,words:WordTiming[]){return words.length>0&&words.map(w=>w.text).join('')===text&&words.every((w,i)=>Number.isInteger(w.start)&&Number.isInteger(w.end)&&w.end>w.start&&(i===0||w.start>=words[i-1].end));}

@@ -377,3 +377,5 @@ playground.xcworkspace
 /resources/speech/win32-*/*.exe
 /resources/speech/win32-*/*.dll
 /resources/windows-runtime/**/*.dll
+/resources/lyrics-alignment/models/*.pt
+/resources/lyrics-alignment/*-*/

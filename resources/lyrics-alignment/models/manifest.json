@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "name": "OpenAI Whisper small",
+      "file": "small.pt",
+      "url": "https://openaipublic.azureedge.net/main/whisper/models/9ecf779972d90ba49c06d968637d720dd632c55bbf19d441fb42bf17a411e794/small.pt",
+      "sha256": "9ecf779972d90ba49c06d968637d720dd632c55bbf19d441fb42bf17a411e794",
+      "license": "MIT",
+      "licenseFile": "../licenses/OpenAI-Whisper-MIT.txt"
+    }
+  ]
+}

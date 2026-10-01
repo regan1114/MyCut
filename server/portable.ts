@@ -6,6 +6,7 @@ import { Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { z } from 'zod';
 import { ProjectSchema, type Project } from '../shared/model';
+import { projectMediaIds } from '../shared/project-media';
 import { Library, type MediaRecord } from './library';
 import type { Projects } from './projects';
 
@@ -32,7 +33,7 @@ export class PortableProjects {
   }
   private async space(dir:string,bytes:number){const st=await fs.statfs(dir);if(st.bavail*st.bsize<bytes+64*1024**2)throw new Error(`磁碟空間不足，需約 ${(bytes/1024**3).toFixed(2)} GB 加上暫存空間。`);}
   async export(value:Project,destination:string){return this.operation('export',async signal=>{
-    const project=ProjectSchema.parse(value),records=[...new Set(project.clips.flatMap(c=>c.mediaId?[c.mediaId]:[]))].map(id=>this.library.get(id));
+    const project=ProjectSchema.parse(value),records=projectMediaIds(project).map(id=>this.library.get(id));
     const sources=await Promise.all(records.map(async m=>{const st=await fs.stat(m.path).catch(()=>null);if(!st?.isFile())throw new Error(`找不到素材「${m.name}」，請先重新連結。`);return {record:m,size:st.size,mtime:st.mtimeMs};}));
     const header=Buffer.from(JSON.stringify(HeaderSchema.parse({format:'mycutpack',version:1,project,media:sources.map(s=>({id:s.record.id,name:s.record.name,bytes:s.size}))})));if(header.length>MAX_HEADER)throw new Error('專案設定超過 16 MB，無法打包。');
     const targetReal=await fs.realpath(destination).catch(()=>path.resolve(destination));
@@ -61,7 +62,7 @@ export class PortableProjects {
       const data=Buffer.alloc(length);if((await file.read(data,0,length,prefix.length)).bytesRead!==length)throw new Error('專案包標頭不完整。');
       const headerHash=Buffer.alloc(32);if((await file.read(headerHash,0,32,prefix.length+length)).bytesRead!==32||!createHash('sha256').update(data).digest().equals(headerHash))throw new Error('專案設定校驗失敗，請重新複製專案包。');
       const header=HeaderSchema.parse(JSON.parse(data.toString('utf8'))),ids=new Set(header.media.map(m=>m.id));
-      if(ids.size!==header.media.length||header.project.clips.some(c=>c.mediaId&&!ids.has(c.mediaId)))throw new Error('專案包的素材清單不完整或有重複 ID。');
+      if(ids.size!==header.media.length||projectMediaIds(header.project).some(id=>!ids.has(id)))throw new Error('專案包的素材清單不完整或有重複 ID。');
       let offset=prefix.length+length+32;const total=header.media.reduce((sum,m)=>sum+m.bytes,0);
       if(offset+total+header.media.length*32!==st.size)throw new Error('專案包長度不符，檔案可能損壞或尚未複製完成。');
       await this.space(this.library.root,total);signal.throwIfAborted();directory=path.join(this.library.root,'media',`package-${randomUUID()}`);await fs.mkdir(directory,{recursive:true});
@@ -75,7 +76,7 @@ export class PortableProjects {
       const mapping=new Map<string,string>();
       for(const [i,item] of files.entries()){signal.throwIfAborted();this.status.message=`正在建立素材庫：${item.name}`;const record=await this.library.prepare(item.file,true,item.name);prepared.push(record);mapping.set(item.oldId,record.id);this.status.progress=.85+(i+1)/Math.max(1,files.length)*.14;}
       const after=await file.stat();if(after.size!==st.size||after.mtimeMs!==st.mtimeMs)throw new Error('專案包在匯入期間變更，請重試。');
-      const project=ProjectSchema.parse({...header.project,id:randomUUID(),name:(header.project.name+' · 還原').slice(0,120),clips:header.project.clips.map(c=>({...c,mediaId:c.mediaId?mapping.get(c.mediaId):undefined}))});
+      const project=ProjectSchema.parse({...header.project,id:randomUUID(),name:(header.project.name+' · 還原').slice(0,120),mediaIds:header.media.map(m=>mapping.get(m.id)!),clips:header.project.clips.map(c=>({...c,mediaId:c.mediaId?mapping.get(c.mediaId):undefined}))});
       signal.throwIfAborted();this.status.message='正在儲存還原的專案…';await this.library.addPrepared(prepared);registered=true;
       const saved=await this.projects.save(project);committed=true;this.library.derive(prepared);return saved;
     }finally{

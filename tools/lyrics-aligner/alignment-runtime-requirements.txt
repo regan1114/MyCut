@@ -1,0 +1,13 @@
+# Runtime dependencies for the bundled MyCut known-lyrics alignment engine.
+# Build only on the native OS/architecture recorded by the desktop package.
+# These pins support CPython 3.9–3.12, including Intel macOS; do not widen the
+# Python range without checking NumPy, Numba and native PyTorch wheels together.
+stable-ts==2.19.1
+openai-whisper==20250625
+opencc-python-reimplemented==0.1.7
+numpy==1.26.4
+numba==0.60.0
+llvmlite==0.43.0
+tiktoken==0.14.0
+torch==2.2.2
+torchaudio==2.2.2

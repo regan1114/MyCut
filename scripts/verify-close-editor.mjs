@@ -22,12 +22,12 @@ try{
  await page.getByLabel('文字內容',{exact:true}).fill('關閉前的修改');await closeWindow();await expect.poll(()=>pending).toBe(true);await closeWindow();
  assert.equal(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().length),1);await expect(page.locator('.app-shell')).toBeVisible();
  await page.getByLabel('文字內容',{exact:true}).fill('儲存等待期間的最後修改');releaseSave();await expect(page.locator('.project-home')).toBeVisible();await page.unroute('**/api/projects/*');
- assert.equal((await data(page)).clips[0].text,'儲存等待期間的最後修改');await page.getByRole('button',{name:'開啟 未命名專案',exact:true}).click();await page.locator('.timeline-clip').click();await expect(page.getByLabel('文字內容',{exact:true})).toHaveValue('儲存等待期間的最後修改');
+ assert.equal((await data(page)).clips[0].text,'儲存等待期間的最後修改');await page.getByRole('button',{name:`開啟 ${(await data(page)).name}`,exact:true}).click();await page.locator('.timeline-clip').click();await expect(page.getByLabel('文字內容',{exact:true})).toHaveValue('儲存等待期間的最後修改');
  // A failed save leaves the editor open and can be retried by closing again.
  await page.route('**/api/projects/*',route=>route.request().method()==='PUT'?route.fulfill({status:500,json:{error:'儲存失敗測試'}}):route.continue());
  await page.getByLabel('文字內容',{exact:true}).fill('儲存失敗後仍保留的修改');await closeWindow();await expect(page.locator('.toast.error')).toContainText('儲存失敗測試');await expect(page.locator('.app-shell')).toBeVisible();assert.equal(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().length),1);
  await page.unroute('**/api/projects/*');await closeWindow();await expect(page.locator('.project-home')).toBeVisible();assert.equal((await data(page)).clips[0].text,'儲存失敗後仍保留的修改');
- await page.getByRole('button',{name:'開啟 未命名專案',exact:true}).click();
+ await page.getByRole('button',{name:`開啟 ${(await data(page)).name}`,exact:true}).click();
  // Closing the editor does not shut down a running native export.
  const job=await page.evaluate(async()=>{const projects=await(await fetch('/api/projects')).json(),p=await(await fetch(`/api/projects/${projects[0].id}`)).json();p.clips=p.clips.map(c=>({...c,start:0,duration:3600*p.fps}));return await(await fetch('/api/exports',{method:'POST',headers:{'Content-Type':'application/json','X-MyCut':'1'},body:JSON.stringify({project:p,settings:{resolution:720,quality:'standard',encoder:'libx264'}})})).json();});assert.ok(job.id);
  await closeWindow();await expect(page.locator('.project-home')).toBeVisible();
@@ -37,7 +37,7 @@ try{
  // Closing from the manager still closes the app when no jobs are running.
  let closed=app.waitForEvent('close');await app.evaluate(({BrowserWindow})=>{setTimeout(()=>BrowserWindow.getAllWindows()[0].close(),0);});await closed;app=undefined;
  // Explicit application quit must not be converted into "return home".
- page=await launch();const savedOnOpen=page.waitForResponse(r=>r.request().method()==='PUT'&&r.url().includes('/api/projects/'));await page.getByRole('button',{name:'開啟 未命名專案',exact:true}).click();await savedOnOpen;await page.getByText('已儲存至本機',{exact:true}).waitFor();closed=app.waitForEvent('close');await app.evaluate(({app})=>{setTimeout(()=>app.quit(),0);});await closed;app=undefined;
+ page=await launch();const savedOnOpen=page.waitForResponse(r=>r.request().method()==='PUT'&&r.url().includes('/api/projects/'));await page.getByRole('button',{name:`開啟 ${(await data(page)).name}`,exact:true}).click();await savedOnOpen;await page.getByText('已儲存至本機',{exact:true}).waitFor();closed=app.waitForEvent('close');await app.evaluate(({app})=>{setTimeout(()=>app.quit(),0);});await closed;app=undefined;
  assert.deepEqual(errors,[]);
  const version=JSON.parse(await fs.readFile('package.json','utf8')).version;
  const report={version,testedAt:new Date().toISOString(),platform:process.platform,arch:process.arch,packagedApp:!unpackaged,nativeCloseReturnsHome:true,waitsForSave:true,editsDuringSavePreserved:true,repeatedCloseSafe:true,failedSaveKeepsEditor:true,retrySaveOnClose:true,exportContinuesOnHome:true,managerCloseStillCloses:true,explicitQuitStillQuits:true,errors};

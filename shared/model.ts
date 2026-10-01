@@ -1,6 +1,8 @@
+import { projectDateName } from './projects';
 import { z } from 'zod';
 import { EffectsSchema, defaultEffects } from './effects';
 import { KaraokeSchema } from './karaoke';
+import { UnmatchedLyricSchema } from './lyrics-timeline';
 
 export const uid = () => crypto.randomUUID();
 export const FpsSchema = z.union([z.literal(24), z.literal(25), z.literal(30), z.literal(50), z.literal(60)]);
@@ -26,11 +28,17 @@ export const ClipSchema = z.object({
   karaoke: KaraokeSchema.default({}),
   shape: z.enum(['rectangle','circle']).default('rectangle'), keyframes: z.array(KeyframeSchema).max(300).default([]),
 });
-export const TrackSchema = z.object({ id: z.string().min(1).max(100), name: z.string().max(100), kind: z.enum(['video','audio','text','effect']), muted: z.boolean().default(false), hidden: z.boolean().default(false), locked: z.boolean().default(false) });
+export const TrackSchema = z.object({ id: z.string().min(1).max(100), name: z.string().max(100), kind: z.enum(['video','audio','text','effect']), muted: z.boolean().default(false), hidden: z.boolean().default(false), locked: z.boolean().default(false), manualTextLane: z.boolean().optional() }).transform(track => track.kind === 'text' && /^(?:文字與字幕|原稿字幕對齊|歌詞精準對齊|自動字幕|自動歌詞|手動校時歌詞)(?: \d+)*$/.test(track.name) ? { ...track, name: '文字與字幕' } : track);
 export const ProjectSchema = z.object({
   version: z.literal(1), id: z.string().uuid(), name: z.string().min(1).max(120), width: z.number().int().min(160).max(4096), height: z.number().int().min(160).max(4096),
   fps: FpsSchema, background: hex.default('#101418'), tracks: z.array(TrackSchema).min(1).max(32), clips: z.array(ClipSchema).max(20000),
+  mediaIds: z.array(z.string().uuid()).max(20000).default([]),
   effects: EffectsSchema.default({}),
+  pendingLyrics: z.array(z.object({
+    jobId: z.string().uuid(), mode: z.enum(['captions', 'lyrics']),
+    duration: z.number().finite().nonnegative(),
+    lines: z.array(UnmatchedLyricSchema).max(12000),
+  })).max(100).optional(),
   markers: z.array(z.object({ id: z.string().uuid(), frame, name: z.string().max(100) })).max(1000).default([]), updatedAt: z.string().default(''),
 }).superRefine((p, ctx) => {
   if (p.width % 2 || p.height % 2) ctx.addIssue({ code:'custom', message:'畫布尺寸必須為偶數' });
@@ -52,13 +60,13 @@ export type ExportSettings = { resolution:720|1080|2160; quality:'standard'|'hig
 export type ExportJob = { id:string; name:string; status:'queued'|'running'|'paused'|'failed'|'completed'; progress:number; completedSegments:number; totalSegments:number; duration:number; createdAt:string; error?:string; output?:string; settings:ExportSettings };
 export type FontInfo = { id:string; family:string; label:string; language:'繁體中文'|'Latin'; category:string; file:string; license:string; source:string };
 
-export function newProject(): Project { return {version:1,id:uid(),name:'未命名專案',width:1920,height:1080,fps:30,background:'#101418',tracks:[
+export function newProject(): Project { return {version:1,id:uid(),name:projectDateName(),width:1920,height:1080,fps:30,background:'#101418',tracks:[
   {id:'text',name:'文字與字幕',kind:'text',muted:false,hidden:false,locked:false},
   {id:'overlay',name:'疊加畫面',kind:'video',muted:false,hidden:false,locked:false},
   {id:'main',name:'主影片',kind:'video',muted:false,hidden:false,locked:false},
   {id:'voice',name:'人聲',kind:'audio',muted:false,hidden:false,locked:false},
   {id:'music',name:'音樂',kind:'audio',muted:false,hidden:false,locked:false},
-],clips:[],effects:defaultEffects(),markers:[],updatedAt:new Date().toISOString()}; }
+],clips:[],mediaIds:[],effects:defaultEffects(),markers:[],updatedAt:new Date().toISOString()}; }
 export function makeClip(partial: Partial<Clip> & Pick<Clip,'kind'|'trackId'|'start'|'duration'>): Clip { return ClipSchema.parse({id:uid(),name:partial.kind === 'text' ? '文字' : '新片段',...partial}); }
 export const endFrame = (p:Project) => Math.max(0,...p.clips.map(c=>c.start+c.duration));
 export const seconds = (frame:number, fps:number) => frame / fps;
@@ -71,7 +79,13 @@ export function splitClip(clip:Clip, at:number, fps:number): Clip[] {
   const middle = evaluateClip(clip,offset);
   const leftKeys = clip.keyframes.length ? [...clip.keyframes.filter(k=>k.frame<offset), {frame:offset,...middle}] : [];
   const rightKeys = clip.keyframes.length ? [{frame:0,...middle},...clip.keyframes.filter(k=>k.frame>offset).map(k=>({...k,frame:k.frame-offset}))] : [];
-  return [{...clip,duration:offset,fadeOut:0,audioFadeOut:0,keyframes:leftKeys}, {...clip,id:uid(),start:at,duration:clip.duration-offset,sourceIn:clip.sourceIn+offset/fps*clip.speed,fadeIn:0,audioFadeIn:0,keyframes:rightKeys,karaoke:{...clip.karaoke,offset:(clip.karaoke?.offset??0)+offset}}];
+  const parts:Clip[] = [{...clip,duration:offset,fadeOut:0,audioFadeOut:0,keyframes:leftKeys}, {...clip,id:uid(),start:at,duration:clip.duration-offset,sourceIn:clip.sourceIn+offset/fps*clip.speed,fadeIn:0,audioFadeIn:0,keyframes:rightKeys,karaoke:{...clip.karaoke,offset:(clip.karaoke?.offset??0)+offset}}];
+  if(clip.captionType==='lyrics'&&clip.karaoke.source==='alignment'){
+    const chars=Array.from(clip.text);if(chars.length<2)return [clip];
+    const boundary=Math.max(1,Math.min(chars.length-1,Math.round(chars.length*offset/clip.duration)));
+    return parts.map((part,index)=>({...part,text:(index?chars.slice(boundary):chars.slice(0,boundary)).join(''),karaoke:{...part.karaoke,words:[],enabled:false,offset:0}}));
+  }
+  return parts;
 }
 export function evaluateClip(c:Clip,relativeFrame:number): Omit<Keyframe,'frame'> {
   const keys = [...c.keyframes].sort((a,b)=>a.frame-b.frame);

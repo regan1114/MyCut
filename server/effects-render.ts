@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createCanvas } from '@napi-rs/canvas';
-import { renderEffects } from '../shared/effects';
+import { renderEffects, rhythmEffectSpeed } from '../shared/effects';
 import { effectLayersAt, projectNeedsRhythm } from '../shared/effect-timeline';
 import { sampleRhythm } from '../shared/rhythm';
 import type { Project, ExportSettings, FontInfo } from '../shared/model';
@@ -56,7 +56,7 @@ export async function renderEffectStream(args:string[],p:Project,library:Library
           if(frames>=total)throw new Error('特效來源影格數超出預期');
           sc.putImageData(pixels,0,0);const time=(from+frames)/p.fps;
           ctx.clearRect(0,0,W,H);ctx.drawImage(source,0,0);
-          for(const effects of effectLayersAt(p,from+frames)){sc.clearRect(0,0,W,H);sc.drawImage(output,0,0);renderEffects(ctx as unknown as CanvasRenderingContext2D,source as unknown as CanvasImageSource,W,H,time,effects,sampleRhythm(p,time,features,effects.speed),scratch.getContext('2d') as unknown as CanvasRenderingContext2D);}
+          for(const effects of effectLayersAt(p,from+frames)){sc.clearRect(0,0,W,H);sc.drawImage(output,0,0);renderEffects(ctx as unknown as CanvasRenderingContext2D,source as unknown as CanvasImageSource,W,H,time,effects,sampleRhythm(p,time,features,rhythmEffectSpeed(effects)),scratch.getContext('2d') as unknown as CanvasRenderingContext2D);}
           const raw=output.data();await new Promise<void>((resolve,reject)=>encoder.stdin.write(raw,error=>error?reject(error):resolve()));
           frames++;used=0;options.onProgress?.(frames/p.fps*.95);
         }

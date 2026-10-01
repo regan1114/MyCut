@@ -61,6 +61,7 @@ test('caption properties only list and select; text tab edits selection and time
   await expect(list.getByRole('button', { pressed: true })).toContainText('第二句字幕');
   await expect(page.locator('.time-display b')).toHaveText('00:00:03:00');
   await inspector.getByRole('button', { name: '文字', exact: true }).click();
+  await expect(inspector.getByLabel('片段名稱')).toHaveCount(0);
   await expect(page.getByLabel('文字內容', { exact: true })).toHaveValue('第二句字幕');
   await expect(inspector.getByRole('button', { name: '逐字校時', exact: true })).toBeVisible();
   await page.getByLabel('文字內容', { exact: true }).fill('修改後的字幕');
@@ -74,18 +75,49 @@ test('caption properties only list and select; text tab edits selection and time
   await expect(list.getByRole('button', { pressed: true })).toContainText('修改後的字幕');
   await expect(list.getByRole('listitem')).toHaveCount(2);
   await page.screenshot({ path: 'test-results/caption-properties.png', fullPage: true });
+  for (const tab of ['動畫', '調色']) {
+    await inspector.getByRole('button', { name: tab, exact: true }).click();
+    await expect(inspector.getByLabel('片段名稱')).toHaveCount(0);
+    await page.screenshot({ path: `test-results/inspector-${tab === '動畫' ? 'motion' : 'color'}.png`, fullPage: true });
+  }
+  await inspector.getByRole('button', { name: '字幕屬性' }).click();
   await page.getByRole('button', { name: '底圖，00:00:00:00', exact: true }).click(); await expect(inspector.getByRole('button', { name: '字幕屬性' })).toHaveCount(0); await expect(page.getByLabel('開始秒數')).toBeVisible();
   await inspector.getByRole('button', { name: '調色', exact: true }).click(); await page.locator('.clip-text').nth(1).click(); await expect(page.getByLabel('文字內容', { exact: true })).toHaveValue('修改後的字幕');
   await page.getByText('已儲存至本機', { exact: true }).waitFor(); await page.reload(); await page.getByRole('button', { name: `開啟 ${p.name}`, exact: true }).click(); await expect(page.locator('.clip-text').nth(1)).toHaveAccessibleName('修改後的字幕，00:00:03:00'); expect(errors).toEqual([]);
 });
 
-test('an hour of captions is paginated and searchable without rendering the whole list', async ({ page }) => {
+test('an hour of captions scrolls continuously across tracks and preserves search and scroll position', async ({ page }) => {
   const p = newProject(); p.name = '一小時字幕清單';
-  p.clips = Array.from({ length: 1201 }, (_, i) => makeClip({ kind: 'text', trackId: 'text', start: i * 90, duration: 90, text: `字幕第 ${i + 1} 句`, name: '新增字幕', captionType: 'captions' }));
-  await open(page, p); await page.locator('.clip-text').first().click(); await page.getByRole('button', { name: '字幕屬性' }).click();
-  const list = page.getByRole('list', { name: '專案字幕清單' }); await expect(list.getByRole('listitem')).toHaveCount(50); await expect(page.locator('.caption-list-pages')).toContainText('1 / 25');
-  await page.getByLabel('搜尋字幕內容').fill('第 1201 句'); await expect(list.getByRole('listitem')).toHaveCount(1); await list.getByRole('button').click(); await expect(list.getByRole('button', { pressed: true })).toContainText('字幕第 1201 句'); await expect(page.locator('.time-display b')).toHaveText('01:00:00:00'); await expect(page.getByLabel('搜尋字幕內容')).toHaveValue('第 1201 句'); await expect(list.getByRole('listitem')).toHaveCount(1); await page.getByRole('button',{name:'清除字幕搜尋'}).click(); await expect(page.locator('.caption-list-pages')).toContainText('25 / 25');
-  await expect(page.locator('.clip-text.selected')).toContainText('字幕第 1201 句'); await page.getByRole('button', { name: '上一頁字幕' }).click(); await expect(list.getByRole('listitem')).toHaveCount(50); await expect(page.locator('.caption-list-pages')).toContainText('24 / 25');
+  p.tracks.unshift({ ...p.tracks[0], id: 'second-text', name: '另一條字幕軌', manualTextLane: true });
+  p.clips = Array.from({ length: 1201 }, (_, i) => makeClip({ kind: 'text', trackId: i % 2 ? 'second-text' : 'text', start: i * 90, duration: 90, text: `字幕第 ${i + 1} 句`, name: '新增字幕', captionType: 'captions' })).reverse();
+  await open(page, p); await page.getByRole('button', { name: '字幕第 1 句，00:00:00:00', exact: true }).click(); await page.getByRole('button', { name: '字幕屬性' }).click();
+  const list = page.getByRole('list', { name: '專案字幕清單' });
+  await expect(list.locator('button>span').first()).toHaveText('字幕第 1 句');
+  await expect(list.locator('button>span').nth(1)).toHaveText('字幕第 2 句');
+  expect(await list.getByRole('listitem').count()).toBeLessThan(40);
+  await expect(list.getByRole('listitem').first()).toHaveAttribute('aria-setsize', '1201');
+  await expect(page.getByRole('button', { name: /上一頁字幕|下一頁字幕/ })).toHaveCount(0);
+  const searchTop = (await page.getByLabel('搜尋字幕內容').boundingBox())!.y;
+  await list.evaluate(el => { el.scrollTop = el.scrollHeight; });
+  const last = list.getByRole('button', { name: /字幕第 1201 句/ });
+  await expect(last).toBeInViewport(); await last.click();
+  await expect(page.locator('.time-display b')).toHaveText('01:00:00:00');
+  expect((await page.getByLabel('搜尋字幕內容').boundingBox())!.y).toBe(searchTop);
+  await page.getByLabel('搜尋字幕內容').fill('第 1201 句');
+  await expect(list.getByRole('listitem')).toHaveCount(1); await expect(list.locator('small')).toHaveText('1201');
+  await page.getByRole('button', { name: '清除字幕搜尋' }).click();
+  await expect(last).toBeInViewport(); await expect(page.locator('.clip-text.selected')).toContainText('字幕第 1201 句');
+  await list.evaluate(el => { el.scrollTop = 5000; });
+  await expect(last).toHaveCount(0);
   await page.locator('.inspector').getByRole('button', { name: '文字', exact: true }).click(); await expect(page.getByLabel('文字內容', { exact: true })).toHaveValue('字幕第 1201 句');
-  await page.getByRole('button', { name: '字幕屬性' }).click(); await expect(page.locator('.caption-list-pages')).toContainText('24 / 25');
+  await page.getByRole('button', { name: '字幕屬性' }).click();
+  await expect.poll(() => list.evaluate(el => el.scrollTop)).toBe(5000);
+  await page.setViewportSize({ width: 1020, height: 740 });
+  await list.focus(); await page.keyboard.press('End'); await expect(last).toBeInViewport();
+  await page.screenshot({ path: 'test-results/caption-continuous-list.png', fullPage: true });
+  await page.getByLabel('搜尋字幕內容').fill('沒有這一句'); await expect(list.getByRole('listitem')).toHaveCount(0);
+  await expect(list).toContainText('找不到符合的字幕');
+  await page.locator('.inspector').getByRole('button', { name: '新增字幕', exact: true }).click();
+  await expect(page.getByLabel('搜尋字幕內容')).toHaveValue('');
+  await expect(list.getByRole('button', { pressed: true })).toContainText('輸入你的字幕');
 });

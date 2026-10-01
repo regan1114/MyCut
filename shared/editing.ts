@@ -1,5 +1,5 @@
 import { clamp, evaluateClip, ProjectSchema, splitClip, uid, type Clip, type Media, type Project } from './model';
-import { appendClips, firstFreeStart, firstRangeAfter, occupiedRanges, insertTimedClips } from './placement';
+import { appendClips, firstFreeStart, firstRangeAfter, occupiedRanges, insertTimedClips, primaryTextTrack, pruneTextTracks } from './placement';
 
 /** Groups and linked audio/video are selected as a connected set. */
 export function expandSelection(p:Project, ids:readonly string[]):string[] {
@@ -15,12 +15,21 @@ export function editableSelection(p:Project,ids:readonly string[]) {
   return clips;
 }
 export const compatibleTrack=(kind:Clip['kind'],track:Project['tracks'][number])=>kind==='effect'?track.kind==='effect':kind==='audio'?track.kind==='audio':track.kind==='video'||track.kind==='text';
+const onlyTextClips=(p:Project,clips:Clip[])=>clips.every(c=>c.kind==='text'&&p.tracks.some(t=>t.id===c.trackId&&t.kind==='text'));
+const textDestination=(p:Project,c:Clip)=>{const t=p.tracks.find(t=>t.id===c.trackId)!;return t.manualTextLane||t.hidden||t.muted||t.name!=='文字與字幕'?t.id:primaryTextTrack(p)?.id??t.id;};
+function placeMovedText(p:Project,clips:Clip[]):Project{
+  const ids=new Set(clips.map(c=>c.id)),placed=insertTimedClips({...p,clips:p.clips.filter(c=>!ids.has(c.id))},clips),byId=new Map(placed.clips.map(c=>[c.id,c]));
+  return {...placed,clips:p.clips.map(c=>byId.get(c.id)!)};
+}
 export function moveSelection(p:Project,ids:readonly string[],delta:number,trackId?:string):Project {
   const clips=editableSelection(p,ids);if(!clips.length)return p;
   let low=-Math.min(...clips.map(c=>c.start)),high=86400*p.fps-Math.max(...clips.map(c=>c.start+c.duration));
   let d=clamp(Math.round(delta),low,high);
   const selected=new Set(clips.map(c=>c.id));const target=p.tracks.find(t=>t.id===trackId);
   if(target&&(target.locked||!compatibleTrack(clips[0].kind,target)))throw new Error('此軌道無法放置選取的片段。');
+  if(onlyTextClips(p,clips)&&(!target||target.kind==='text')){
+    return placeMovedText(p,clips.map(c=>({...c,start:c.start+d,trackId:clips.length===1&&target?target.id:textDestination(p,c)})));
+  }
   const ranges=occupiedRanges(p,selected);
   if(clips.length===1&&target&&target.id!==clips[0].trackId){d=firstFreeStart(ranges.get(target.id)??[],clips[0].start+d,clips[0].duration)-clips[0].start;if(d>high)throw new Error('此軌道沒有足夠空間。');}
   else if(clips.some(c=>firstFreeStart(ranges.get(c.trackId)??[],c.start+d,c.duration)!==c.start+d)){
@@ -36,17 +45,17 @@ function maximumDuration(c:Clip,p:Project,media:Media[]) {
 /** Trims use one common delta so linked tracks keep their relative timing. */
 export function trimSelection(p:Project,ids:readonly string[],edge:'left'|'right',delta:number,media:Media[]):Project {
   const clips=editableSelection(p,ids);if(!clips.length)return p;
-  let low=-Infinity,high=Infinity;
+  let low=-Infinity,high=Infinity;const textOnly=onlyTextClips(p,clips);
   const neighbours=new Map<string,{before:number;after:number}>();
   for(const track of p.tracks){const lane=p.clips.filter(c=>c.trackId===track.id).sort((a,b)=>a.start-b.start);let end=0;for(let i=0;i<lane.length;i++){neighbours.set(lane[i].id,{before:end,after:lane[i+1]?.start??86400*p.fps});end=Math.max(end,lane[i].start+lane[i].duration);}}
   for(const c of clips){const m=media.find(m=>m.id===c.mediaId);
     if(edge==='left'){low=Math.max(low,-c.start,m&&m.kind!=='image'?-Math.floor(c.sourceIn/c.speed*p.fps):-c.start);high=Math.min(high,c.duration-1);}
     else{low=Math.max(low,1-c.duration);high=Math.min(high,maximumDuration(c,p,media)-c.duration);}
-    const adjacent=neighbours.get(c.id)!;if(edge==='left')low=Math.max(low,adjacent.before-c.start);else high=Math.min(high,adjacent.after-c.start-c.duration);
+    if(!textOnly){const adjacent=neighbours.get(c.id)!;if(edge==='left')low=Math.max(low,adjacent.before-c.start);else high=Math.min(high,adjacent.after-c.start-c.duration);}
   }
   if(low>high)return p;
   const d=clamp(Math.round(delta),low,high),selected=new Set(clips.map(c=>c.id));
-  return {...p,clips:p.clips.map(c=>{
+  const result={...p,clips:p.clips.map(c=>{
     if(!selected.has(c.id))return c;
     if(edge==='right'){const duration=c.duration+d;const state=evaluateClip(c,duration);return {...c,duration,keyframes:c.keyframes.some(k=>k.frame>duration)?[...c.keyframes.filter(k=>k.frame<duration),{frame:duration,...state}]:c.keyframes};}
     const m=media.find(m=>m.id===c.mediaId),state=evaluateClip(c,d);
@@ -54,6 +63,7 @@ export function trimSelection(p:Project,ids:readonly string[],edge:'left'|'right
     if(c.keyframes.some(k=>k.frame<d)&&!keys.some(k=>k.frame===0))keys.unshift({frame:0,...state});
     return {...c,start:c.start+d,duration:c.duration-d,sourceIn:m&&m.kind!=='image'?c.sourceIn+d/p.fps*c.speed:c.sourceIn,karaoke:{...c.karaoke,offset:c.karaoke.offset+d},keyframes:keys};
   })};
+  return textOnly?placeMovedText(p,result.clips.filter(c=>selected.has(c.id)).map(c=>({...c,trackId:textDestination(p,c)}))):result;
 }
 export function duplicateSelection(p:Project,ids:readonly string[]) {
   const clips=editableSelection(p,ids);if(!clips.length)return {project:p,ids:[]};
@@ -73,14 +83,14 @@ export function splitSelection(p:Project,ids:readonly string[],at:number) {
 export function removeSelection(p:Project,ids:readonly string[],ripple=false):Project {
   const clips=editableSelection(p,ids),selected=new Set(clips.map(c=>c.id));
   const remaining=p.clips.filter(c=>!selected.has(c.id));
-  if(!ripple)return {...p,clips:remaining};
+  if(!ripple)return pruneTextTracks({...p,clips:remaining});
   const intervals=new Map<string,{start:number;end:number}[]>();
   for(const track of p.tracks){const merged:{start:number;end:number}[]=[];for(const c of clips.filter(c=>c.trackId===track.id).sort((a,b)=>a.start-b.start)){const prev=merged.at(-1);if(prev&&prev.end>=c.start)prev.end=Math.max(prev.end,c.start+c.duration);else merged.push({start:c.start,end:c.start+c.duration});}intervals.set(track.id,merged);}
   const shifts=new Map(remaining.map(c=>[c.id,(intervals.get(c.trackId)??[]).reduce((sum,r)=>sum+(r.end<=c.start?r.end-r.start:0),0)]));
   for(const c of remaining){const amount=shifts.get(c.id)!;if(!amount)continue;if(p.tracks.find(t=>t.id===c.trackId)?.locked)throw new Error('漣漪刪除會移動鎖定軌道。');
     if(expandSelection({...p,clips:remaining},[c.id]).some(id=>shifts.get(id)!==amount))throw new Error('漣漪刪除會改變群組或音畫同步，請改用一般刪除或先解除群組／連動。');
   }
-  return {...p,clips:remaining.map(c=>({...c,start:c.start-shifts.get(c.id)!}))};
+  return pruneTextTracks({...p,clips:remaining.map(c=>({...c,start:c.start-shifts.get(c.id)!}))});
 }
 export function setSelectionRelation(p:Project,ids:readonly string[],key:'groupId'|'linkId',enabled:boolean):Project {
   const clips=editableSelection(p,ids);if(enabled&&clips.length<2)throw new Error('請先選取至少兩個片段。');

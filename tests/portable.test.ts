@@ -27,3 +27,11 @@ test('canceling a large portable export preserves the destination and removes pa
   try{await library.init();const source=path.join(root,'large.raw');const handle=await fs.open(source,'w');await handle.truncate(256*1024**2);await handle.close();const id=uid();library.records.push({id,name:'large.raw',path:source,owned:false,kind:'video',duration:3600,width:1920,height:1080,hasAudio:false,size:256*1024**2});const p=newProject();p.clips=[makeClip({kind:'video',mediaId:id,trackId:'main',start:0,duration:108000})];const pack=new PortableProjects(library,new Projects(root,library)),destination=path.join(root,'saved.mycutpack');await fs.writeFile(destination,'keep existing');const task=pack.export(p,destination);const cancel=setInterval(()=>{if(pack.status.progress>0)pack.cancel();},1);try{await assert.rejects(()=>task,/取消/);}finally{clearInterval(cancel);}assert.equal(await fs.readFile(destination,'utf8'),'keep existing');assert.equal((await fs.readdir(root)).some(name=>name.endsWith('.partial')),false);assert.equal(pack.isRunning,false);
   }finally{library.close();await fs.rm(root,{recursive:true,force:true});}
 });
+
+test('portable project retains imported bin assets that have not been added to the timeline',async()=>{
+  const root=await fs.mkdtemp(path.join(os.tmpdir(),'mycut-portable-bin-')),source=new Library(path.join(root,'source')),target=new Library(path.join(root,'target'));
+  try{await source.init();await target.init();const file=path.join(root,'unused.png');await fs.writeFile(file,createCanvas(32,32).toBuffer('image/png'));
+    const m=await source.import(file),p=newProject();p.mediaIds=[m.id];const pack=path.join(root,'bin.mycutpack');await new PortableProjects(source,new Projects(source.root,source)).export(p,pack);await fs.rm(file);
+    const restored=await new PortableProjects(target,new Projects(target.root,target)).import(pack);assert.equal(restored.clips.length,0);assert.equal(restored.mediaIds.length,1);assert.notEqual(restored.mediaIds[0],m.id);assert.equal(target.get(restored.mediaIds[0]).name,'unused.png');
+  }finally{source.close();target.close();await fs.rm(root,{recursive:true,force:true});}
+});

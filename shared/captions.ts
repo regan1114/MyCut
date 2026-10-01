@@ -1,4 +1,4 @@
-import { insertTimedClips } from './placement';
+import { insertTimedClips, primaryTextTrack } from './placement';
 import { z } from 'zod';
 import { validWordTiming, defaultKaraoke, enhancedLrc, type WordTiming } from './karaoke';
 import { makeClip, uid, type Media, type Project } from './model';
@@ -6,7 +6,7 @@ import { makeClip, uid, type Media, type Project } from './model';
 export const CaptionOptionsSchema=z.object({mode:z.enum(['captions','lyrics']),language:z.enum(['auto','zh','en','ja','ko','es','fr','de']).default('auto'),traditional:z.boolean().default(true),clipId:z.string().uuid().optional(),vocalFocus:z.boolean().default(true),karaoke:z.boolean().optional()});
 export type CaptionOptions=z.infer<typeof CaptionOptionsSchema>;
 export type Cue={id:string;start:number;duration:number;text:string;confidence?:number;words?:WordTiming[]};
-export type CaptionJob={id:string;projectId:string;name:string;fps:number;options:CaptionOptions;signature:string;status:'queued'|'running'|'paused'|'failed'|'completed';stage:string;progress:number;completedChunks:number;totalChunks:number;duration:number;createdAt:string;error?:string;cueCount:number;cues?:Cue[]};
+export type CaptionJob={alignment?:boolean;id:string;projectId:string;name:string;fps:number;options:CaptionOptions;signature:string;status:'queued'|'running'|'paused'|'failed'|'completed';stage:string;progress:number;completedChunks:number;totalChunks:number;duration:number;createdAt:string;error?:string;cueCount:number;cues?:Cue[]};
 export type SpeechCapabilities={available:boolean;model:string;engine:string;reason?:string};
 export function audibleClips(p:Project,media:Media[],clipId?:string){return p.clips.filter(c=>(c.kind==='video'||c.kind==='audio')&&(!clipId||c.id===clipId)&&c.volume>0&&p.tracks.some(t=>t.id===c.trackId&&!t.hidden&&!t.muted)&&media.some(m=>m.id===c.mediaId&&m.hasAudio));}
 export function audioSignature(p:Project,media:Media[],clipId?:string){return JSON.stringify({fps:p.fps,clips:audibleClips(p,media,clipId).map(c=>({id:c.id,mediaId:c.mediaId,start:c.start,duration:c.duration,sourceIn:c.sourceIn,speed:c.speed,volume:c.volume,fadeIn:c.audioFadeIn,fadeOut:c.audioFadeOut,denoise:c.denoise})).sort((a,b)=>a.id.localeCompare(b.id))});}
@@ -15,10 +15,10 @@ export function validateCues(cues:Cue[],fps:number){if(!cues.length)throw new Er
 export function applyCaptions(p:Project,job:CaptionJob,cues:Cue[],media:Media[],fontId='notosanstc'):Project{
   if(p.id!==job.projectId)throw new Error('辨識結果屬於另一個專案');
   if(audioSignature(p,media,job.options.clipId)!==job.signature)throw new Error('音訊時間軸已改變，請重新辨識以確保時間正確');
-  validateCues(cues,p.fps);const existing=p.clips.find(c=>c.captionJobId===job.id);const track=existing? p.tracks.find(t=>t.id===existing.trackId):undefined;
+  validateCues(cues,p.fps);const track=primaryTextTrack(p);
   const oldTrackIds=new Set(p.clips.filter(c=>c.captionJobId===job.id).map(c=>c.trackId));if(p.tracks.some(t=>oldTrackIds.has(t.id)&&t.locked))throw new Error('請先解鎖這批字幕的軌道');if(!track&&p.tracks.length>=32)throw new Error('最多 32 條軌道，請先移除一條空軌道');
-  const trackId=track?.id??uid();const name=job.options.mode==='lyrics'?'自動歌詞':'自動字幕';
-  const clips=cues.map(c=>makeClip({kind:'text',trackId,start:c.start,duration:c.duration,text:c.text,name:c.text.trim().slice(0,30),fontId,fontSize:56,y:.35,textBackground:true,captionJobId:job.id,captionType:job.options.mode,karaoke:{...defaultKaraoke(),enabled:!!job.options.karaoke&&validWordTiming(c.text,c.words??[]),source:'whisper',words:validWordTiming(c.text,c.words??[])?c.words!:[]}}));
+  const trackId=track?.id??uid();const name='文字與字幕';
+  const clips=cues.map(c=>makeClip({kind:'text',trackId,start:c.start,duration:c.duration,text:c.text,name:c.text.trim().slice(0,30),fontId,fontSize:56,y:.35,textBackground:true,captionJobId:job.id,captionType:job.options.mode,karaoke:{...defaultKaraoke(),enabled:!!job.options.karaoke&&validWordTiming(c.text,c.words??[]),source:job.alignment?'alignment':'whisper',words:validWordTiming(c.text,c.words??[])?c.words!:[]}}));
   const remaining=p.clips.filter(c=>c.captionJobId!==job.id);const retained=p.tracks.filter(t=>t.id===trackId||!oldTrackIds.has(t.id)||remaining.some(c=>c.trackId===t.id));
   const result=insertTimedClips({...p,tracks:track?retained:[{id:trackId,name,kind:'text' as const,muted:false,hidden:false,locked:false},...p.tracks],clips:remaining},clips);if(result.clips.length>20000)throw new Error('專案片段數超過 20,000');return result;
 }

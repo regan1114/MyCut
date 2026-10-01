@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { makeClip, newProject, uid } from '../../shared/model';
+import { makeClip, newProject, uid, type Project } from '../../shared/model';
 
 test('marker clicks seek exactly, cancel stops scrubbing, and leaving editor removes gesture listeners', async ({ page }) => {
   const p = newProject(); p.name = '時間軸手勢清理'; p.clips = [makeClip({ kind: 'text', trackId: 'text', start: 0, duration: 900, text: '手勢驗證' })];
@@ -18,4 +18,44 @@ test('marker clicks seek exactly, cancel stops scrubbing, and leaving editor rem
   await page.getByRole('button', { name: '返回專案首頁' }).evaluate((button: HTMLButtonElement) => button.click());
   await page.locator('.project-home').waitFor(); await page.mouse.up(); await page.getByRole('button', { name: `開啟 ${p.name}`, exact: true }).click();
   await page.mouse.move(800, 650); await expect(page.locator('.time-display b')).toHaveText('00:00:00:00');
+});
+
+test('playback, jumps and zoom keep the playhead in view, and returning to the start scrolls back', async ({ page }) => {
+  const p=newProject();p.name='播放頭跟隨';p.clips=[makeClip({kind:'text',trackId:'text',start:0,duration:3600,text:'長時間字幕'})];
+  await page.request.put(`/api/projects/${p.id}`,{headers:{'X-MyCut':'1'},data:p});
+  await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
+  const scroll=page.locator('.timeline-scroll');const box=(await scroll.boundingBox())!;
+  await page.mouse.click(box.x+box.width*.8-20,box.y+12);
+  const before=await scroll.evaluate(el=>el.scrollLeft);
+  await page.keyboard.press('Space');
+  await expect.poll(()=>scroll.evaluate(el=>el.scrollLeft),{timeout:6000}).toBeGreaterThan(before+55);
+  await page.keyboard.press('Space');
+  const visible=()=>page.evaluate(()=>{const head=document.querySelector('.playhead')!.getBoundingClientRect(),view=document.querySelector('.timeline-scroll')!.getBoundingClientRect();return head.left>=view.left&&head.left<view.right;});
+  await expect.poll(visible).toBe(true);
+  for(let i=0;i<35;i++)await page.keyboard.press('Shift+ArrowRight');
+  await expect.poll(()=>scroll.evaluate(el=>el.scrollLeft)).toBeGreaterThan(1000);await expect.poll(visible).toBe(true);
+  await page.getByRole('button',{name:'放大時間軸',exact:true}).click();await expect.poll(visible).toBe(true);
+  await page.screenshot({path:'test-results/playhead-follow.png',fullPage:true});
+  await page.getByRole('button',{name:'回到開頭',exact:true}).click();await expect.poll(()=>scroll.evaluate(el=>el.scrollLeft)).toBe(0);
+});
+
+test('text overlap makes a lane; vertical drags add lanes above and below and empty lanes disappear',async({page})=>{
+  const p=newProject();p.name='動態字幕軌道';p.clips=[makeClip({kind:'text',trackId:'text',start:0,duration:60,text:'第一句'}),makeClip({kind:'text',trackId:'text',start:90,duration:60,text:'移動這句'})];
+  await page.request.put(`/api/projects/${p.id}`,{headers:{'X-MyCut':'1'},data:p});await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
+  await page.getByRole('button',{name:'磁吸對齊',exact:true}).click();
+  const moving=page.locator('.clip-text').filter({hasText:'移動這句'}),headers=page.locator('.track-header').filter({hasText:'文字與字幕'});
+  const drag=async(dx:number,y?:number)=>{const b=(await moving.boundingBox())!;await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.mouse.move(b.x+b.width/2+dx,y??b.y+b.height/2,{steps:8});await page.mouse.up();};
+  const read=async()=>{await expect(page.getByText('已儲存至本機',{exact:true})).toBeVisible();return await(await page.request.get(`/api/projects/${p.id}`)).json() as Project;};
+  await drag(-110);await expect(headers).toHaveCount(2);let saved=await read();expect(saved.clips[1].start).toBe(30);expect(saved.clips[1].trackId).not.toBe(saved.clips[0].trackId);
+  await drag(110);await expect(headers).toHaveCount(1);saved=await read();expect(saved.clips[1].start).toBe(90);expect(saved.clips[1].trackId).toBe(saved.clips[0].trackId);
+  let lane=(await page.locator('[data-track="text"]').boundingBox())!;
+  await drag(0,lane.y-15);await expect(headers).toHaveCount(2);saved=await read();expect(saved.clips[1].start).toBe(90);expect(saved.tracks[0].id).toBe(saved.clips[1].trackId);expect(saved.tracks[0].manualTextLane).toBe(true);
+  await page.getByRole('button',{name:/^復原/}).click();await expect(headers).toHaveCount(1);await page.getByRole('button',{name:/^重做/}).click();await expect(headers).toHaveCount(2);
+  await page.getByRole('button',{name:'返回專案首頁',exact:true}).click();await page.reload();await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();await expect(headers).toHaveCount(2);
+  lane=(await page.locator('[data-track="text"]').boundingBox())!;
+  await drag(0,lane.y+lane.height/2);await expect(headers).toHaveCount(1);
+  lane=(await page.locator('[data-track="text"]').boundingBox())!;
+  await drag(0,lane.y+lane.height+18);await expect(headers).toHaveCount(2);saved=await read();expect(saved.tracks[1].id).toBe(saved.clips[1].trackId);expect(saved.clips[1].start).toBe(90);
+  await page.screenshot({path:'test-results/dynamic-text-lanes.png',fullPage:true});
+  await page.getByRole('button',{name:'刪除（Delete）',exact:true}).click();await expect(headers).toHaveCount(1);await expect(page.locator('.clip-text')).toHaveCount(1);
 });

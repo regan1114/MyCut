@@ -1,0 +1,25 @@
+.lyrics-source-panel>label{display:flex;flex-direction:column;gap:7px;margin:12px 0;font-size:11px}
+.lyrics-source-panel>.caption-check{flex-direction:row;align-items:center}
+.lyrics-source-panel select,.lyrics-source-panel progress{width:100%}
+.lyrics-source-panel .field-note{overflow-wrap:anywhere}
+.lyrics-source-panel input[type=file]{width:100%}
+.lyrics-source-panel>.batch-open{width:100%;margin:4px 0 10px}
+.lyrics-source-panel>.field-note{font-size:9px;line-height:1.7}
+.lyrics-import-button{position:relative;justify-content:flex-start;margin:10px 0}
+.lyrics-import-button input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.lyrics-script-modal{width:min(680px,94vw)}
+.lyrics-script-input{display:flex;flex-direction:column;gap:7px;margin:12px 28px;font-size:10px;color:var(--secondary)}
+.lyrics-script-input textarea{height:260px;min-height:160px;background:var(--hover);border-color:var(--border-hover);font-size:12px;line-height:1.7}
+.lyrics-script-input select{height:34px}
+.lyrics-script-modal>.caption-check{margin:12px 28px}
+.lyrics-align-progress{display:flex;align-items:center;gap:10px;padding:0 28px 14px;font-size:10px;color:var(--secondary)}
+.lyrics-align-progress progress{flex:1;max-width:220px;height:4px;accent-color:var(--accent)}
+.lyrics-align-progress button{font-size:10px}
+.lyrics-pending{margin:14px 0;padding-top:12px;border-top:1px solid var(--border-hover)}
+.lyrics-pending h3{font-size:12px;margin:0 0 8px}
+.lyrics-pending-row{padding:12px 0;border-bottom:1px solid var(--border-hover)}
+.lyrics-pending-row strong{font-size:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.lyrics-time-field{display:flex;align-items:flex-end;gap:8px;margin:8px 0}
+.lyrics-time-field label{flex:1;min-width:0;font-size:10px;color:var(--secondary)}
+.lyrics-time-field input{display:block;width:100%;margin-top:5px}
+.lyrics-time-field button{flex:none;font-size:10px;min-height:30px}

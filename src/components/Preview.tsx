@@ -3,12 +3,12 @@ import { Play, Pause, SkipBack, SkipForward, Maximize, Volume2, VolumeX } from '
 import { activeClips, clamp, clipOpacity, evaluateClip, endFrame, timecode, type Project, type Media, type FontInfo, type Clip } from '../../shared/model';
 import { clipSvg } from '../../shared/text-svg';
 import { drawTextFrame, hasKaraoke } from '../../shared/karaoke';
-import { renderEffects } from '../../shared/effects';
+import { renderEffects, rhythmEffectSpeed } from '../../shared/effects';
 import { effectLayersAt } from '../../shared/effect-timeline';
 import { sampleRhythm } from '../../shared/rhythm';
 import { useRhythm } from '../hooks/useRhythm';
 
-type Props={project:Project;media:Media[];fonts:FontInfo[];frame:number;playing:boolean;setFrame:(v:number)=>void;setPlaying:(v:boolean)=>void;onSelect:(id:string)=>void;selected?:string;onError:(s:string)=>void};
+type Props={playRange?:{start:number;end:number;nonce:number};project:Project;media:Media[];fonts:FontInfo[];frame:number;playing:boolean;setFrame:(v:number)=>void;setPlaying:(v:boolean)=>void;onSelect:(id:string)=>void;selected?:string;onError:(s:string)=>void};
 type PreviewSource={element:HTMLVideoElement|HTMLImageElement|HTMLAudioElement;url:string;gain?:GainNode;node?:MediaElementAudioSourceNode};
 type TextSurface={canvas:HTMLCanvasElement;clip?:Clip;fonts?:FontInfo[];fontRevision?:number;projectWidth?:number;frame?:number;animated?:boolean};
 function releaseSource(source:PreviewSource){
@@ -16,7 +16,7 @@ function releaseSource(source:PreviewSource){
   if(el instanceof HTMLMediaElement){el.onloadeddata=null;el.onseeked=null;el.pause();el.removeAttribute('src');el.load();}else el.removeAttribute('src');
   source.node?.disconnect();source.gain?.disconnect();
 }
-export default function Preview({project:p,media,fonts,frame,playing,setFrame,setPlaying,onSelect,selected,onError}:Props){
+export default function Preview({playRange,project:p,media,fonts,frame,playing,setFrame,setPlaying,onSelect,selected,onError}:Props){
   const canvas=useRef<HTMLCanvasElement>(null);const stage=useRef<HTMLDivElement>(null);const sources=useRef(new Map<string,PreviewSource>());
   // Cache only active text, with at most eight 960×540 surfaces plus one reusable overflow surface.
   const textSurfaces=useRef(new Map<string,TextSurface>()),overflowText=useRef<TextSurface|undefined>(undefined);
@@ -26,7 +26,7 @@ export default function Preview({project:p,media,fonts,frame,playing,setFrame,se
   const active=useMemo(()=>activeClips(p,frame),[p,frame]);const previewScale=Math.min(1,960/p.width,540/p.height),width=Math.max(1,Math.round(p.width*previewScale)),height=Math.max(1,Math.round(p.height*previewScale));
   const duration=useMemo(()=>endFrame(p),[p.clips]);
   const fontKey=JSON.stringify([...new Set(active.filter(c=>c.kind==='text').flatMap(c=>[fonts.find(f=>f.id===c.fontId)?.family??'Noto Sans TC','Noto Sans TC']))].sort());
-  useEffect(()=>{let animation=0;let started=0;let first=frame;const animate=(now:number)=>{if(!started){started=now;first=props.current.frame;}const next=first+Math.floor((now-started)/1000*props.current.p.fps);const end=duration;if(next>=end){setFrame(Math.max(0,end-1));setPlaying(false);return;}if(next!==props.current.frame)setFrame(next);animation=requestAnimationFrame(animate);};if(playing)animation=requestAnimationFrame(animate);return()=>cancelAnimationFrame(animation);},[playing,setFrame,setPlaying,duration]);
+  useEffect(()=>{let animation=0;let started=0;let first=frame;const animate=(now:number)=>{if(!started){started=now;first=playRange?.start??props.current.frame;}const next=first+Math.floor((now-started)/1000*props.current.p.fps);const end=playRange?Math.min(duration,playRange.end):duration;if(next>=end){setFrame(playRange?end:Math.max(0,end-1));setPlaying(false);return;}if(next!==props.current.frame)setFrame(next);animation=requestAnimationFrame(animate);};if(playing)animation=requestAnimationFrame(animate);return()=>cancelAnimationFrame(animation);},[playing,setFrame,setPlaying,duration,playRange]);
   useEffect(()=>{
     const ids=new Set(active.map(c=>c.id));for(const [id,s] of sources.current){if(!ids.has(id)){releaseSource(s);sources.current.delete(id);}}
     for(const c of active){
@@ -83,7 +83,7 @@ export default function Preview({project:p,media,fonts,frame,playing,setFrame,se
       ctx.restore();
     }
     const layers=effectLayersAt(p,frame);if(layers.length){const source=effectSource.current??(effectSource.current=document.createElement('canvas'));if(source.width!==width||source.height!==height){source.width=width;source.height=height;}const sc=source.getContext('2d')!;const scratch=effectScratch.current??(effectScratch.current=document.createElement('canvas'));if(scratch.width!==width||scratch.height!==height){scratch.width=width;scratch.height=height;}
-      for(const effects of layers){sc.clearRect(0,0,width,height);sc.drawImage(cvs,0,0);renderEffects(ctx,source,width,height,frame/p.fps,effects,sampleRhythm(p,frame/p.fps,rhythm.features,effects.speed),scratch.getContext('2d')!);}
+      for(const effects of layers){sc.clearRect(0,0,width,height);sc.drawImage(cvs,0,0);renderEffects(ctx,source,width,height,frame/p.fps,effects,sampleRhythm(p,frame/p.fps,rhythm.features,rhythmEffectSpeed(effects)),scratch.getContext('2d')!);}
     }
   },[p,frame,media,fonts,ready,fontRevision,width,height,rhythm.features]);
   useEffect(()=>{const map=sources.current;return()=>{for(const s of map.values())releaseSource(s);map.clear();for(const surface of textSurfaces.current.values()){surface.canvas.width=0;surface.canvas.height=0;}textSurfaces.current.clear();if(overflowText.current){overflowText.current.canvas.width=0;overflowText.current.canvas.height=0;overflowText.current=undefined;}void audioContext.current?.close();audioContext.current=undefined;};},[]);

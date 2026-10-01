@@ -42,6 +42,18 @@ Original dependency license files are retained in installed packages. See `packa
 
 Reproduce the engine and verify model integrity with `npm run speech:install`. macOS requires CMake and a C/C++ compiler. Windows x64 uses the official whisper.cpp v1.8.6 CPU release, verified by SHA-256; its executable manifest is modified to select UTF-8 for paths. Source: https://github.com/ggml-org/whisper.cpp/releases/tag/v1.8.6 . The modified binary hash is recorded in its platform manifest.
 
+## Known-lyrics alignment
+
+MyCut bundles a separate native Python alignment worker and OpenAI Whisper small checkpoint for direct forced alignment. It runs offline and is not a LyricFlow service dependency.
+
+- stable-ts 2.19.1, MIT: https://github.com/jianfch/stable-ts . License: `resources/lyrics-alignment/licenses/stable-ts-MIT.txt`.
+- OpenAI Whisper 20250625 code and small model checkpoint, MIT: https://github.com/openai/whisper . License: `resources/lyrics-alignment/licenses/OpenAI-Whisper-MIT.txt`; model URL, SHA-256 and source are in `resources/lyrics-alignment/models/manifest.json`.
+- PyTorch 2.2.2 and torchaudio 2.2.2, BSD-3-Clause: notices in `resources/lyrics-alignment/licenses/PyTorch-BSD-3-Clause.txt`, `PyTorch-NOTICE.txt`, and `torchaudio-BSD.txt`.
+- OpenCC-Python-Reimplemented 0.1.7, MIT; NumPy 1.26.4, BSD; Numba 0.60.0 and llvmlite 0.43.0, BSD; tiktoken 0.14.0, MIT. License files and third-party notices are included under `resources/lyrics-alignment/licenses/`.
+- PyInstaller 6.15.0 is a build-time tool; its compiled bootloader is used by the worker executable. Its GPL terms and bootloader exception are included as `resources/lyrics-alignment/licenses/PyInstaller-COPYING.txt`. PyInstaller hooks are build-time only.
+
+Pre-trained Demucs separation weights are not distributed. The source repository labels its code MIT, while the upstream issue about licensing the separate pre-trained weights does not establish a redistribution grant ([upstream model-license discussion](https://github.com/facebookresearch/demucs/issues/327)). MyCut conservatively leaves that optional model and UI choice out of the installer.
+
 Microsoft Visual C++ v14 runtime DLLs are deployed beside the Windows application and speech engine, without changing the system installation. Copyright Microsoft Corporation. Original runtime license: https://aka.ms/VCRedistLicense . Fixed download URL and original DLL SHA-256 hashes: `resources/windows-runtime/x64/manifest.json`. These DLLs retain their original signatures and are not covered by the application or Whisper MIT licenses.
 
 ## Atmosphere effects

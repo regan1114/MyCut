@@ -11,8 +11,11 @@ const arch=archFlag>=0?process.argv[archFlag+1]:(target==='win'?'x64':process.ar
 if(target==='win'&&arch!=='x64')throw new Error('Windows 目前僅支援 x64');
 const platform=target==='win'?'win32':'darwin';
 if(!['x64','arm64'].includes(arch))throw new Error('Unsupported architecture');
+if(platform!==process.platform||arch!==process.arch)throw new Error(`本機對齊引擎必須在目標系統與架構上建置；目前是 ${process.platform}-${process.arch}，目標是 ${platform}-${arch}。`);
 if(!process.env.npm_execpath)throw new Error('請使用 npm run package:mac / package:win');
 const npm=(args,options={})=>run(process.execPath,[process.env.npm_execpath,...args],options);
+await run(process.execPath,['scripts/install-lyrics-alignment-model.mjs']);
+await run(process.execPath,['scripts/build-lyrics-aligner.mjs',platform,arch]);
 await npm(['run','build']);
 await run(process.execPath,['scripts/install-speech.mjs','--platform',platform,'--arch',arch]);
 const config={electronVersion:require('electron/package.json').version};
@@ -30,6 +33,8 @@ if(target==='win'||arch!==process.arch){
   for(const name of ['package.json','package-lock.json','dist','dist-server','electron','public/fonts','THIRD_PARTY_NOTICES.md'])await fs.cp(path.join(root,name),path.join(stage,name),{recursive:true});
   const speech=path.join(stage,'resources/speech');await fs.mkdir(speech,{recursive:true});
   for(const name of await fs.readdir('resources/speech'))if(name===`${platform}-${arch}`||!name.startsWith('darwin-')&&!name.startsWith('win32-'))await fs.cp(path.join(root,'resources/speech',name),path.join(speech,name),{recursive:true});
+  const alignment=path.join(stage,'resources/lyrics-alignment');await fs.mkdir(alignment,{recursive:true});
+  for(const name of ['models','licenses',`${platform}-${arch}`])await fs.cp(path.join(root,'resources/lyrics-alignment',name),path.join(alignment,name),{recursive:true});
   await npm(['ci','--omit=dev','--ignore-scripts',`--os=${platform}`,`--cpu=${arch}`,'--no-audit','--no-fund'],{cwd:stage});
   await run(process.execPath,[path.join(stage,'node_modules/ffmpeg-static/install.js')],{cwd:stage,env:{...process.env,npm_config_platform:platform,npm_config_arch:arch}});
   for(const name of [`@napi-rs/canvas-${platform}-${arch}${target==='win'?'-msvc':''}`,`@resvg/resvg-js-${platform}-${arch}${target==='win'?'-msvc':''}`])await fs.access(path.join(stage,'node_modules',name));
@@ -42,5 +47,6 @@ if(target==='win'||arch!==process.arch){
   config.electronDist=path.join(root,'node_modules/electron/dist');
   config.files.push('!resources/speech/win32-*/**/*',`!resources/speech/darwin-${arch==='x64'?'arm64':'x64'}/**/*`);
 }
+for(const otherPlatform of ['darwin','win32'])for(const otherArch of ['x64','arm64'])if(`${otherPlatform}-${otherArch}`!==`${platform}-${arch}`)config.files.push(`!resources/lyrics-alignment/${otherPlatform}-${otherArch}/**/*`);
 const artifacts=await build({projectDir:root,config,targets:(target==='win'?Platform.WINDOWS:Platform.MAC).createTarget(target==='win'?['nsis','zip']:['dir'],arch==='x64'?Arch.x64:Arch.arm64),publish:'never'});
-console.log('Package complete:',artifacts.join('\n'));
+console.log('Package complete:',artifacts.length?artifacts.join('\n'):path.join(config.directories?.output??path.join(root,'release'),platform==='darwin'?'mac':'win-unpacked'));
