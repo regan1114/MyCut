@@ -259,6 +259,7 @@ npm run desktop
 | `npm run dev` | 啟動開發介面與本機服務 |
 | `npm run build` | 型別檢查與正式建置 |
 | `npm test` | 執行核心測試 |
+| `npm run lyrics-aligner:evaluate -- --manifest <檔案>` | 以人工時間標註評估歌詞對齊準確度 |
 | `npm run test:ui` | 驗證瀏覽器操作流程 |
 | `npm run test:effects` | 驗證特效實際匯出與分段處理 |
 | `npm run package:mac` | 封裝目前 Mac 架構的應用程式 |
@@ -271,6 +272,7 @@ npm run desktop
 ## 延伸閱讀與授權
 
 - [編輯、字幕與長片指南](docs/editor-guide.md)
+- [歌詞對齊準確度評估](docs/lyrics-alignment-evaluation.md)
 - [群組、時段特效與專案包操作](docs/workflow-guide.md)
 - [平台與封裝說明](docs/cross-platform.md)
 - [第三方元件與授權聲明](THIRD_PARTY_NOTICES.md)

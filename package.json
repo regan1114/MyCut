@@ -13,6 +13,7 @@
     "package:mac": "node scripts/package-desktop.mjs mac",
     "lyrics-aligner:setup": "node scripts/setup-lyrics-aligner.mjs",
     "lyrics-aligner:build": "node scripts/build-lyrics-aligner.mjs",
+    "lyrics-aligner:evaluate": "node scripts/evaluate-lyrics-alignment.mjs",
     "lyrics-aligner:assets": "node scripts/install-lyrics-alignment-model.mjs",
     "test": "node --import tsx --test tests/*.test.ts",
     "test:export": "node --import tsx scripts/verify-export.ts",
