@@ -10,12 +10,12 @@ import { Library } from '../server/library';
 import { Projects } from '../server/projects';
 
 test('project bins retain unused imports, migrate timeline references, and remove only the selected asset',()=>{
-  const a=uid(),b=uid(),groupId=uid(),p=newProject();p.clips=[makeClip({kind:'audio',mediaId:a,trackId:'music',start:0,duration:90,groupId}),makeClip({kind:'audio',mediaId:a,trackId:'voice',start:90,duration:60}),makeClip({kind:'text',trackId:'text',start:0,duration:90,groupId})];
+  const a=uid(),b=uid(),groupId=uid(),p=newProject();p.clips=[makeClip({kind:'audio',mediaId:a,trackId:'music',start:0,duration:90,groupId}),makeClip({kind:'audio',mediaId:a,trackId:'music',start:90,duration:60}),makeClip({kind:'text',trackId:'text',start:0,duration:90,groupId})];
   const legacy=ProjectSchema.parse({...p,mediaIds:undefined}),imported=addProjectMedia(legacy,[b,a,b]);
   assert.deepEqual(imported.mediaIds,[a,b]);assert.deepEqual(projectMediaIds(newProject()),[]);
   const removed=removeProjectMedia(imported,a);assert.deepEqual(removed.mediaIds,[b]);assert.deepEqual(removed.clips,[p.clips[2]]);assert.deepEqual(imported.clips,p.clips);
   assert.deepEqual(projectMediaIds(ProjectSchema.parse(JSON.parse(JSON.stringify(removed)))),[b]);
-  const locked={...imported,tracks:imported.tracks.map(t=>t.id==='voice'?{...t,locked:true}:t)};assert.throws(()=>removeProjectMedia(locked,a),/解鎖/);assert.deepEqual(removeProjectMedia(locked,b).mediaIds,[a]);
+  const locked={...imported,tracks:imported.tracks.map(t=>t.id==='music'?{...t,locked:true}:t)};assert.throws(()=>removeProjectMedia(locked,a),/解鎖/);assert.deepEqual(removeProjectMedia(locked,b).mediaIds,[a]);
 });
 
 test('date names use local year month day and append unused numeric suffixes',()=>{

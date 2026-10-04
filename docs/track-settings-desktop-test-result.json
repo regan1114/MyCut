@@ -1,0 +1,17 @@
+{
+  "version": "0.6.13",
+  "testedAt": "2026-10-04T03:57:00.255Z",
+  "platform": "darwin",
+  "arch": "x64",
+  "packagedApp": true,
+  "textTrackStyle": true,
+  "independentTracks": true,
+  "batchStylePersistence": true,
+  "newTextTracks": true,
+  "undoRedo": true,
+  "reload": true,
+  "mediaOverlapPlacement": true,
+  "mediaDragDrop": true,
+  "trimAndSpeed": true,
+  "errors": []
+}

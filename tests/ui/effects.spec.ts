@@ -1,3 +1,4 @@
+import { projectWithOverlay } from '../fixtures/project';
 import { test, expect } from '@playwright/test';
 test('effects preview, layering, undo, saved project and seek remain consistent',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.getByRole('button',{name:'開啟示範專案',exact:true}).click();await expect(page.getByRole('button',{name:'匯出影片',exact:true})).toBeVisible({timeout:30000});
@@ -19,20 +20,20 @@ test('effects preview, layering, undo, saved project and seek remain consistent'
 });
 
 test('music effects analyse imported audio and stop responding when its track is muted',async({page})=>{
- const {newProject,makeClip}=await import('../../shared/model');
+ const {makeClip}=await import('../../shared/model');
  const rate=8000,seconds=3,wav=Buffer.alloc(44+rate*seconds*2);wav.write('RIFF',0);wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(rate,24);wav.writeUInt32LE(rate*2,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(wav.length-44,40);for(let i=0;i<rate*seconds;i++)wav.writeInt16LE(i/rate%.5<.08?Math.round(Math.sin(i/rate*2*Math.PI*220)*22000):0,44+i*2);
- const response=await page.request.post('/api/media/upload',{headers:{'X-MyCut':'1'},multipart:{file:{name:'rhythm-test.wav',mimeType:'audio/wav',buffer:wav}}});expect(response.ok()).toBeTruthy();const uploaded=await response.json();const p=newProject();p.name='特效節奏測試';p.effects.enabled=['strobe','spectrum','beatRays'];p.effects.intensity=1;p.clips=[makeClip({kind:'shape',trackId:'main',start:0,duration:90,color:'#507561'}),makeClip({kind:'audio',trackId:'music',mediaId:uploaded.imported[0],start:0,duration:90})];
+ const response=await page.request.post('/api/media/upload',{headers:{'X-MyCut':'1'},multipart:{file:{name:'rhythm-test.wav',mimeType:'audio/wav',buffer:wav}}});expect(response.ok()).toBeTruthy();const uploaded=await response.json();const p=projectWithOverlay();p.name='特效節奏測試';p.effects.enabled=['strobe','spectrum','beatRays'];p.effects.intensity=1;p.clips=[makeClip({kind:'shape',trackId:'main',start:0,duration:90,color:'#507561'}),makeClip({kind:'audio',trackId:'music',mediaId:uploaded.imported[0],start:0,duration:90})];
  expect((await page.request.put(`/api/projects/${p.id}`,{headers:{'X-MyCut':'1'},data:p})).ok()).toBeTruthy();await page.goto('/');
  const analysisResponse=page.waitForResponse(r=>r.url().includes('/rhythm?spectrum=1'));
  await page.getByRole('button',{name:'開啟 特效節奏測試',exact:true}).click();const analysis=await analysisResponse;expect(analysis.ok()).toBeTruthy();const features=await analysis.json();expect(features.beats.length).toBeGreaterThanOrEqual(5);expect(Buffer.from(features.bands,'base64').length).toBeGreaterThan(4000);await expect(page.locator('.fx-analysis')).toHaveCount(0);
  const center=()=>page.locator('.preview-stage canvas').evaluate((el:HTMLCanvasElement)=>Array.from(el.getContext('2d')!.getImageData(el.width/2,el.height/2,1,1).data).slice(0,3).reduce((s,v)=>s+v,0));
- await page.getByRole('navigation').getByRole('button',{name:'特效',exact:true}).click();await page.getByLabel('頻譜樣式').selectOption('circle');await page.getByLabel('特效品質').selectOption('draft');await page.getByLabel('頻譜樣式').selectOption('waveform');await page.getByLabel('頻譜樣式').selectOption('bars');const lit=await center();await page.locator('.track-header').filter({hasText:'音樂'}).getByRole('button',{name:'靜音軌道',exact:true}).click();await expect.poll(center).toBeLessThan(lit-20);await expect(page.getByText('已儲存至本機',{exact:true})).toBeVisible();
+ await page.getByRole('navigation').getByRole('button',{name:'特效',exact:true}).click();await page.getByRole('button',{name:'音樂頻譜',exact:true}).click();await page.getByRole('button',{name:'音樂頻譜',exact:true}).click();await page.getByLabel('頻譜樣式').selectOption('circle');await page.getByLabel('特效品質').selectOption('draft');await page.getByLabel('頻譜樣式').selectOption('waveform');await page.getByLabel('頻譜樣式').selectOption('bars');const lit=await center();await page.locator('.track-header').filter({hasText:'音樂'}).getByRole('button',{name:'靜音軌道',exact:true}).click();await expect.poll(center).toBeLessThan(lit-20);await expect(page.getByText('已儲存至本機',{exact:true})).toBeVisible();
 });
 
 test('new effects have artwork, change the preview and persist as global or timed effects',async({page})=>{
- const {newProject,makeClip}=await import('../../shared/model');
+ const {makeClip}=await import('../../shared/model');
  const {effectCatalog}=await import('../../shared/effects');const added=effectCatalog.slice(28);
- const p=newProject();p.name='新增特效驗證';p.clips=[makeClip({kind:'shape',trackId:'main',start:0,duration:300,color:'#37577a'}),makeClip({kind:'shape',trackId:'overlay',start:0,duration:300,shape:'circle',color:'#efd2a4',scale:.27,x:.12})];
+ const p=projectWithOverlay();p.name='新增特效驗證';p.clips=[makeClip({kind:'shape',trackId:'main',start:0,duration:300,color:'#37577a'}),makeClip({kind:'shape',trackId:'overlay',start:0,duration:300,shape:'circle',color:'#efd2a4',scale:.27,x:.12})];
  expect((await page.request.put(`/api/projects/${p.id}`,{headers:{'X-MyCut':'1'},data:p})).ok()).toBeTruthy();
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
  await page.getByRole('navigation').getByRole('button',{name:'特效',exact:true}).click();await expect(page.locator('.fx-card')).toHaveCount(40);

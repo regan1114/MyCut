@@ -23,7 +23,6 @@ export function enhancedLrc(text:string,words:WordTiming[],fps:number,start=0,of
 export function drawTextFrame(ctx:CanvasRenderingContext2D,c:Clip,W:number,H:number,fonts:FontInfo[],projectWidth:number,relativeFrame:number){
   const size=c.fontSize*W/projectWidth,lines=c.text.split('\n'),lineHeight=size*1.4,top=H/2-(lines.length-1)*lineHeight/2;
   ctx.save();ctx.clearRect(0,0,W,H);ctx.font=`400 ${size}px "${fonts.find(f=>f.id===c.fontId)?.family??'Noto Sans TC'}", "Noto Sans TC"`;if('fontVariationSettings' in ctx)(ctx as CanvasRenderingContext2D & {fontVariationSettings:string}).fontVariationSettings='"wght" 400';ctx.textBaseline='alphabetic';ctx.textAlign='left';
-  if(c.textBackground){ctx.fillStyle='rgba(16,17,18,.82)';ctx.beginPath();ctx.roundRect(W*.06,top-size*.85,W*.88,lines.length*lineHeight,size*.2);ctx.fill();}
   const timed=hasKaraoke(c),progress=timed?wordProgress(c.karaoke.words,relativeFrame+c.karaoke.offset):[],spans:{from:number;to:number;progress:number}[]=[];let offset=0;
   if(timed)for(let i=0;i<c.karaoke.words.length;i++){const to=offset+c.karaoke.words[i].text.length;spans.push({from:offset,to,progress:progress[i]});offset=to;}
   let lineOffset=0;

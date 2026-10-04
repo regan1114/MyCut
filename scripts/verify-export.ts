@@ -1,3 +1,4 @@
+import { projectWithOverlay } from '../tests/fixtures/project';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -5,12 +6,12 @@ import os from 'node:os';
 import { ffmpeg, probe } from '../server/native';
 import { Library } from '../server/library';
 import { Jobs } from '../server/jobs';
-import { newProject, makeClip, type FontInfo } from '../shared/model';
+import { makeClip, type FontInfo } from '../shared/model';
 const root=await fs.mkdtemp(path.join(os.tmpdir(),'mycut-export-test-'));
 const fontRoot=path.resolve('public/fonts');const fonts:FontInfo[]=JSON.parse(await fs.readFile(path.join(fontRoot,'manifest.json'),'utf8'));
 const source=path.join(root,'source.mp4');await ffmpeg(['-f','lavfi','-i','testsrc2=size=320x180:rate=30','-f','lavfi','-i','sine=frequency=440:sample_rate=48000','-t','7','-c:v','libx264','-preset','ultrafast','-c:a','aac','-shortest',source]);
 const library=new Library(root);await library.init();const m=await library.import(source);
-const p=newProject();p.name='實際影音匯出驗證';p.clips=[
+const p=projectWithOverlay();p.name='實際影音匯出驗證';p.clips=[
  makeClip({kind:'video',trackId:'main',mediaId:m.id,start:0,duration:90,name:'A',volume:.3}),
  makeClip({kind:'video',trackId:'main',mediaId:m.id,start:90,duration:90,sourceIn:3,name:'B',volume:.3,speed:1.25,brightness:.04,saturation:.7}),
  makeClip({kind:'text',trackId:'text',start:15,duration:150,text:'MyCut 商用字型驗證\n你好，世界。',fontId:'huninn',fontSize:90,fadeIn:10,fadeOut:10}),

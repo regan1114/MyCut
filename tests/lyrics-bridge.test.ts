@@ -25,7 +25,7 @@ async function fixture(delayMs = 0, result = timeline, audioSeconds = 2) {
   const media = await library.prepare(file, false);
   await library.addPrepared([media]);
   const project = newProject();
-  project.clips = [makeClip({ kind: 'audio', mediaId: media.id, trackId: 'voice', start: 0, duration: audioSeconds * project.fps })];
+  project.clips = [makeClip({ kind: 'audio', mediaId: media.id, trackId: 'music', start: 0, duration: audioSeconds * project.fps })];
   const model = path.join(root, 'small.pt');
   await fs.writeFile(model, 'test model');
   const worker = path.join(root, 'worker.cjs');

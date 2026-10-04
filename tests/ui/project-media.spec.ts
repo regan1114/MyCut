@@ -11,7 +11,7 @@ const open=async(page:Page,p:Project)=>{await page.request.put(`/api/projects/${
 test('new date-named projects have separate bins; unused imports survive reload and can be deleted and restored',async({page})=>{
   const uploaded=await upload(page,'舊專案歌曲.wav'),old=newProject();old.name='素材隔離舊專案';old.clips=[makeClip({kind:'audio',mediaId:uploaded.imported[0],trackId:'music',start:0,duration:90})];
   await open(page,old);await expect(page.locator('.media-card')).toHaveCount(1);await page.getByRole('button',{name:'返回專案首頁',exact:true}).click();
-  const names=await(await page.request.get('/api/projects')).json();const firstName=nextProjectName(names.map((p:Project)=>p.name));
+  const names=[...await(await page.request.get('/api/projects')).json(),...await(await page.request.get('/api/projects?trash=1')).json()];const firstName=nextProjectName(names.map((p:Project)=>p.name));
   await page.getByRole('button',{name:'建立新專案',exact:true}).click();await expect(page.locator('.project-switch')).toContainText(firstName);await expect(page.locator('.media-card')).toHaveCount(0);
   const chooser=page.waitForEvent('filechooser');await page.getByRole('button',{name:'匯入素材',exact:true}).click();await(await chooser).setFiles({name:'本專案歌曲.wav',mimeType:'audio/wav',buffer:await fs.readFile('tests/fixtures/original-en.wav')});
   await expect(page.locator('.media-card')).toHaveCount(1);await expect(page.getByRole('button',{name:'加入 舊專案歌曲.wav',exact:true})).toHaveCount(0);await expect(page.locator('.timeline-footer')).toContainText('0 個片段');

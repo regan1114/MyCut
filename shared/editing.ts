@@ -1,5 +1,6 @@
 import { clamp, evaluateClip, ProjectSchema, splitClip, uid, type Clip, type Media, type Project } from './model';
 import { appendClips, firstFreeStart, firstRangeAfter, occupiedRanges, insertTimedClips, primaryTextTrack, pruneTextTracks } from './placement';
+import { setTrackTextStyle, textStylePatch } from './text-style';
 
 /** Groups and linked audio/video are selected as a connected set. */
 export function expandSelection(p:Project, ids:readonly string[]):string[] {
@@ -14,11 +15,20 @@ export function editableSelection(p:Project,ids:readonly string[]) {
   if(clips.some(c=>p.tracks.find(t=>t.id===c.trackId)?.locked))throw new Error('選取的群組或連動片段包含鎖定軌道，請先解鎖。');
   return clips;
 }
-export const compatibleTrack=(kind:Clip['kind'],track:Project['tracks'][number])=>kind==='effect'?track.kind==='effect':kind==='audio'?track.kind==='audio':track.kind==='video'||track.kind==='text';
-const onlyTextClips=(p:Project,clips:Clip[])=>clips.every(c=>c.kind==='text'&&p.tracks.some(t=>t.id===c.trackId&&t.kind==='text'));
-const textDestination=(p:Project,c:Clip)=>{const t=p.tracks.find(t=>t.id===c.trackId)!;return t.manualTextLane||t.hidden||t.muted||t.name!=='文字與字幕'?t.id:primaryTextTrack(p)?.id??t.id;};
-function placeMovedText(p:Project,clips:Clip[]):Project{
-  const ids=new Set(clips.map(c=>c.id)),placed=insertTimedClips({...p,clips:p.clips.filter(c=>!ids.has(c.id))},clips),byId=new Map(placed.clips.map(c=>[c.id,c]));
+export const compatibleTrack=(kind:Clip['kind'],track:Project['tracks'][number])=>track.kind===(kind==='effect'?'effect':kind==='audio'?'audio':kind==='text'?'text':'video');
+const automaticPlacement=(p:Project,clips:Clip[])=>clips.every(c=>c.kind!=='effect'&&p.tracks.some(t=>t.id===c.trackId&&compatibleTrack(c.kind,t)));
+const clipDestination=(p:Project,c:Clip)=>{
+  const t=p.tracks.find(t=>t.id===c.trackId)!;
+  if(c.kind!=='text'){
+    const origin=p.tracks.find(origin=>origin.id===t.overflowOf&&origin.kind===t.kind&&!origin.locked&&origin.hidden===t.hidden&&origin.muted===t.muted);
+    return origin?.id??t.id;
+  }
+  const primary=primaryTextTrack(p);
+  return t.manualTextLane||t.textStyle||t.hidden||t.muted||t.name!=='文字與字幕'||primary?.textStyle||primary?.manualTextLane?t.id:primary?.id??t.id;
+};
+function placeMovedClips(p:Project,clips:Clip[]):Project{
+  const ids=new Set(clips.map(c=>c.id)),previousTracks=new Map(p.clips.filter(c=>ids.has(c.id)).map(c=>[c.id,c.trackId]));
+  const placed=insertTimedClips({...p,clips:p.clips.filter(c=>!ids.has(c.id))},clips,previousTracks),byId=new Map(placed.clips.map(c=>[c.id,c]));
   return {...placed,clips:p.clips.map(c=>byId.get(c.id)!)};
 }
 export function moveSelection(p:Project,ids:readonly string[],delta:number,trackId?:string):Project {
@@ -27,8 +37,8 @@ export function moveSelection(p:Project,ids:readonly string[],delta:number,track
   let d=clamp(Math.round(delta),low,high);
   const selected=new Set(clips.map(c=>c.id));const target=p.tracks.find(t=>t.id===trackId);
   if(target&&(target.locked||!compatibleTrack(clips[0].kind,target)))throw new Error('此軌道無法放置選取的片段。');
-  if(onlyTextClips(p,clips)&&(!target||target.kind==='text')){
-    return placeMovedText(p,clips.map(c=>({...c,start:c.start+d,trackId:clips.length===1&&target?target.id:textDestination(p,c)})));
+  if(automaticPlacement(p,clips)){
+    return placeMovedClips(p,clips.map(c=>({...c,start:c.start+d,trackId:clips.length===1&&target?target.id:clipDestination(p,c)})));
   }
   const ranges=occupiedRanges(p,selected);
   if(clips.length===1&&target&&target.id!==clips[0].trackId){d=firstFreeStart(ranges.get(target.id)??[],clips[0].start+d,clips[0].duration)-clips[0].start;if(d>high)throw new Error('此軌道沒有足夠空間。');}
@@ -45,13 +55,13 @@ function maximumDuration(c:Clip,p:Project,media:Media[]) {
 /** Trims use one common delta so linked tracks keep their relative timing. */
 export function trimSelection(p:Project,ids:readonly string[],edge:'left'|'right',delta:number,media:Media[]):Project {
   const clips=editableSelection(p,ids);if(!clips.length)return p;
-  let low=-Infinity,high=Infinity;const textOnly=onlyTextClips(p,clips);
+  let low=-Infinity,high=Infinity;const autoPlace=automaticPlacement(p,clips);
   const neighbours=new Map<string,{before:number;after:number}>();
   for(const track of p.tracks){const lane=p.clips.filter(c=>c.trackId===track.id).sort((a,b)=>a.start-b.start);let end=0;for(let i=0;i<lane.length;i++){neighbours.set(lane[i].id,{before:end,after:lane[i+1]?.start??86400*p.fps});end=Math.max(end,lane[i].start+lane[i].duration);}}
   for(const c of clips){const m=media.find(m=>m.id===c.mediaId);
     if(edge==='left'){low=Math.max(low,-c.start,m&&m.kind!=='image'?-Math.floor(c.sourceIn/c.speed*p.fps):-c.start);high=Math.min(high,c.duration-1);}
     else{low=Math.max(low,1-c.duration);high=Math.min(high,maximumDuration(c,p,media)-c.duration);}
-    if(!textOnly){const adjacent=neighbours.get(c.id)!;if(edge==='left')low=Math.max(low,adjacent.before-c.start);else high=Math.min(high,adjacent.after-c.start-c.duration);}
+    if(!autoPlace){const adjacent=neighbours.get(c.id)!;if(edge==='left')low=Math.max(low,adjacent.before-c.start);else high=Math.min(high,adjacent.after-c.start-c.duration);}
   }
   if(low>high)return p;
   const d=clamp(Math.round(delta),low,high),selected=new Set(clips.map(c=>c.id));
@@ -63,7 +73,7 @@ export function trimSelection(p:Project,ids:readonly string[],edge:'left'|'right
     if(c.keyframes.some(k=>k.frame<d)&&!keys.some(k=>k.frame===0))keys.unshift({frame:0,...state});
     return {...c,start:c.start+d,duration:c.duration-d,sourceIn:m&&m.kind!=='image'?c.sourceIn+d/p.fps*c.speed:c.sourceIn,karaoke:{...c.karaoke,offset:c.karaoke.offset+d},keyframes:keys};
   })};
-  return textOnly?placeMovedText(p,result.clips.filter(c=>selected.has(c.id)).map(c=>({...c,trackId:textDestination(p,c)}))):result;
+  return autoPlace?placeMovedClips(p,result.clips.filter(c=>selected.has(c.id)).map(c=>({...c,trackId:clipDestination(p,c)}))):result;
 }
 export function duplicateSelection(p:Project,ids:readonly string[]) {
   const clips=editableSelection(p,ids);if(!clips.length)return {project:p,ids:[]};
@@ -104,7 +114,10 @@ export function patchLinkedClip(p:Project,id:string,fields:Partial<Clip>,media:M
   const linked=c.linkId?p.clips.filter(x=>x.linkId===c.linkId):[c];
   if(linked.some(x=>p.tracks.find(t=>t.id===x.trackId)?.locked))throw new Error('連動片段包含鎖定軌道，請先解鎖。');
   let result=p;
-  if(fields.trackId!==undefined){const target=p.tracks.find(t=>t.id===fields.trackId);if(!target||target.locked||!compatibleTrack(c.kind,target))throw new Error('此軌道無法放置選取的片段。');const lane=occupiedRanges(p,new Set([id])).get(target.id)??[];if(firstFreeStart(lane,fields.start??c.start,c.duration)!==(fields.start??c.start))throw new Error('目標軌道的這段時間已有片段，請選擇空白位置。');result={...result,clips:result.clips.map(x=>x.id===id?{...x,trackId:target.id}:x)};}
+  if(fields.trackId!==undefined){const target=p.tracks.find(t=>t.id===fields.trackId);if(!target||target.locked||!compatibleTrack(c.kind,target))throw new Error('此軌道無法放置選取的片段。');
+    if(c.kind==='text')result={...result,tracks:result.tracks.map(t=>t.id===target.id?{...t,manualTextLane:true}:t)};
+    result=placeMovedClips(result,[{...c,trackId:target.id}]);
+  }
   if(fields.start!==undefined)result=moveSelection(result,linked.map(x=>x.id),fields.start-c.start);
   if(fields.duration!==undefined&&fields.speed===undefined)result=trimSelection(result,linked.map(x=>x.id),'right',fields.duration-c.duration,media);
   const {start:_,duration:__,trackId:___,speed,...local}=fields;
@@ -112,8 +125,23 @@ export function patchLinkedClip(p:Project,id:string,fields:Partial<Clip>,media:M
     if(speed!==undefined&&linked.some(l=>l.id===x.id)){const ratio=x.speed/speed;return {...x,speed,duration:Math.max(1,Math.round(x.duration*ratio)),keyframes:x.keyframes.map(k=>({...k,frame:Math.round(k.frame*ratio)})),...(x.id===id?local:{})};}
     return x.id===id?{...x,...local}:x;
   })};
-  if(speed!==undefined){for(const x of result.clips.filter(x=>linked.some(l=>l.id===x.id))){const lane=occupiedRanges(result,new Set([x.id])).get(x.trackId)??[];if(firstFreeStart(lane,x.start,x.duration)!==x.start)throw new Error('變速後會與同軌片段重疊，請先移開後方片段或更換軌道。');}}
+  if(speed!==undefined)result=placeMovedClips(result,result.clips.filter(x=>linked.some(l=>l.id===x.id)));
   return ProjectSchema.parse(result);
+}
+
+/** Share only text appearance within the selected track; cue contents and times remain local. */
+export function patchInspectorClip(p:Project,id:string,fields:Partial<Clip>,media:Media[],frame:number):Project {
+  const c=p.clips.find(c=>c.id===id);if(!c)return p;
+  const style=c.kind==='text'?textStylePatch(c,fields):{};
+  if(fields.text!==undefined&&fields.text!==c.text&&!fields.karaoke)fields={...fields,karaoke:{...c.karaoke,enabled:false}};
+  if(c.kind!=='text'&&fields.keyframes===undefined&&['x','y','scale','opacity'].some(key=>key in fields)&&c.keyframes.length){
+    const relative=clamp(frame-c.start,0,c.duration),pose=Object.fromEntries(Object.entries(fields).filter(([key])=>['x','y','scale','opacity'].includes(key)));
+    fields={...fields,keyframes:[...c.keyframes.filter(k=>k.frame!==relative),{frame:relative,...evaluateClip(c,relative),...pose}].sort((a,b)=>a.frame-b.frame)};
+  }
+  const next=patchLinkedClip(p,id,fields,media);
+  if(!Object.keys(style).length)return next;
+  const trackId=next.clips.find(clip=>clip.id===id)!.trackId;
+  return ProjectSchema.parse(setTrackTextStyle(next,[trackId],style,fields.keyframes?.length===0));
 }
 
 /** A dissolve needs simultaneous images, placed on separate tracks to keep lanes clear. */

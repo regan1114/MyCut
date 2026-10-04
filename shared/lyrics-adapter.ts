@@ -98,7 +98,7 @@ export function resolvePendingLyric(
   const clip = makeClip({
     kind: 'text', trackId, start: from, duration: to - from, text: line.text,
     name: line.text.trim().slice(0, 30), captionJobId: jobId, captionType: batch.mode,
-    fontId, fontSize: 56, y: .35, textBackground: true,
+    fontId, fontSize: 56, y: .35,
   });
   return insertTimedClips({
     ...project,

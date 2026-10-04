@@ -1,3 +1,4 @@
+import { projectWithOverlay } from '../tests/fixtures/project';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -6,7 +7,7 @@ import { Library } from '../server/library';
 import { renderSegment } from '../server/render';
 import { ffmpeg, probe } from '../server/native';
 import { audioFeatures } from '../server/rhythm';
-import { newProject, makeClip, type FontInfo } from '../shared/model';
+import { makeClip, type FontInfo } from '../shared/model';
 import { EFFECT_IDS } from '../shared/effects';
 import { Jobs } from '../server/jobs';
 const root=await fs.mkdtemp(path.join(os.tmpdir(),'mycut-effects-test-'));
@@ -15,7 +16,7 @@ const lib=new Library(root);await lib.init();
 try{
  const audio=path.join(root,'beat.wav');await ffmpeg(['-f','lavfi','-i','sine=frequency=220:sample_rate=48000:duration=5','-af',"volume='if(lt(mod(t,0.5),0.08),4,0)':eval=frame",audio]);const m=await lib.import(audio);
  const analysis=await audioFeatures(lib,m.id);assert.ok(analysis.beats.length>=5,`detected ${analysis.beats.length} onsets`);
- const p=newProject();p.name=`${EFFECT_IDS.length} 種特效實際匯出驗證`;p.effects.enabled=[...EFFECT_IDS];p.clips=[makeClip({kind:'shape',trackId:'main',start:0,duration:120,color:'#428679'}),makeClip({kind:'text',trackId:'text',start:0,duration:120,text:'MyCut 特效',fontSize:150}),makeClip({kind:'audio',trackId:'music',mediaId:m.id,start:0,duration:120})];
+ const p=projectWithOverlay();p.name=`${EFFECT_IDS.length} 種特效實際匯出驗證`;p.effects.enabled=[...EFFECT_IDS];p.clips=[makeClip({kind:'shape',trackId:'main',start:0,duration:120,color:'#428679'}),makeClip({kind:'text',trackId:'text',start:0,duration:120,text:'MyCut 特效',fontSize:150}),makeClip({kind:'audio',trackId:'music',mediaId:m.id,start:0,duration:120})];
  const settings={resolution:720 as const,quality:'high' as const,encoder:'libx264' as const};const assets=path.join(root,'assets');const options={size:{width:320,height:180}};
  await renderSegment(p,lib,fonts,fontRoot,0,90,settings,path.join(root,'full.mov'),assets,options);
  await renderSegment(p,lib,fonts,fontRoot,45,90,settings,path.join(root,'tail.mov'),assets,options);

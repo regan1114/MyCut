@@ -25,7 +25,7 @@ export default function Timeline({project:p,media,frame,selected,selectedIds,onS
    if(mode==='move'&&(event.shiftKey||event.metaKey||event.ctrlKey)){onSelection(selectedIds.includes(clip.id)?selectedIds.filter(id=>!component.includes(id)):[...new Set([...selectedIds,...component])]);return;}
    const ids=selectedIds.includes(clip.id)?selectedIds:component;onSelection([...ids.filter(id=>id!==clip.id),clip.id]);
    try{editableSelection(p,ids);}catch(e){onError(e);return;}
-   const originX=event.clientX,originY=event.clientY,newLaneId=uid();let started=false;event.currentTarget.setPointerCapture(event.pointerId);
+   const originX=event.clientX,originY=event.clientY,newLaneId=uid(),newLaneIds=[newLaneId];let started=false;event.currentTarget.setPointerCapture(event.pointerId);
    // Keep the hit regions fixed while the preview adds/removes lanes under the pointer.
    const lanes=Array.from(scroll.current!.querySelectorAll<HTMLElement>('[data-track]')).map(el=>({track:p.tracks.find(t=>t.id===el.dataset.track)!,rect:el.getBoundingClientRect()}));
    const timelineBounds=scroll.current!.parentElement!.getBoundingClientRect();
@@ -42,7 +42,9 @@ export default function Timeline({project:p,media,frame,selected,selectedIds,onS
          next=moveSelection(base,ids,snapFrame(clip.start+delta,clip,ids)-clip.start,target);
        }
        else next=trimSelection(p,ids,mode,delta,media);
-       if(ids.length===1&&clip.kind==='text'){const added=next.tracks.find(t=>!p.tracks.some(old=>old.id===t.id));if(added&&added.id!==newLaneId)next={...next,tracks:next.tracks.map(t=>t.id===added.id?{...t,id:newLaneId}:t),clips:next.clips.map(c=>c.trackId===added.id?{...c,trackId:newLaneId}:c)};}
+       const added=next.tracks.filter(t=>!p.tracks.some(old=>old.id===t.id));
+       const laneIds=new Map(added.map((t,i)=>[t.id,newLaneIds[i]??(newLaneIds[i]=uid())]));
+       if(laneIds.size)next={...next,tracks:next.tracks.map(t=>laneIds.has(t.id)?{...t,id:laneIds.get(t.id)!}:t),clips:next.clips.map(c=>laneIds.has(c.trackId)?{...c,trackId:laneIds.get(c.trackId)!}:c)};
        update(()=>next,false);
      }catch(error){onError(error);}
    };

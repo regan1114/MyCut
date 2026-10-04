@@ -1,5 +1,6 @@
+import { projectWithOverlay } from '../fixtures/project';
 import { test, expect, type Page } from '@playwright/test';
-import { makeClip, newProject, type Project } from '../../shared/model';
+import { makeClip, type Project } from '../../shared/model';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
@@ -18,7 +19,7 @@ async function saved(page: Page, project: Project): Promise<Project> {
 }
 
 test('left effects catalog and right properties keep global and timed settings separate', async ({ page }) => {
-  const p = newProject(); p.name = '左右特效分工';
+  const p = projectWithOverlay(); p.name = '左右特效分工';
   p.clips = [makeClip({ kind: 'shape', trackId: 'main', start: 0, duration: 180, name: '底圖' })];
   await open(page, p);
   const nav = page.getByRole('navigation'), left = page.locator('.library-panel'), right = page.locator('.inspector');
@@ -59,7 +60,7 @@ test('audio actions live on left, clip properties on right, and keyframes use on
     await promisify(execFile)(createRequire(import.meta.url)('ffmpeg-static'), ['-hide_banner', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=160x90:rate=30', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000', '-t', '2', '-c:v', 'libx264', '-preset', 'ultrafast', '-c:a', 'aac', file]);
     const upload = await page.request.post('/api/media/upload', { headers: { 'X-MyCut': '1' }, multipart: { file: { name: '有聲影片.mp4', mimeType: 'video/mp4', buffer: await fs.readFile(file) } } });
     expect(upload.ok()).toBeTruthy(); const media = await upload.json();
-    const p = newProject(); p.name = '左右音訊分工';
+    const p = projectWithOverlay(); p.name = '左右音訊分工';
     p.clips = [makeClip({ kind: 'video', trackId: 'main', mediaId: media.imported[0], start: 0, duration: 60, name: '有聲影片' }), makeClip({ kind: 'shape', trackId: 'overlay', start: 0, duration: 60, name: '圖形' })];
     await open(page, p);
     const left = page.locator('.library-panel'), right = page.locator('.inspector');

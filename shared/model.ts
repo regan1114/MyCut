@@ -13,7 +13,7 @@ export const ClipSchema = z.object({
   id: z.string().uuid(), trackId: z.string().min(1).max(100), kind: z.enum(['video', 'image', 'audio', 'text', 'shape', 'effect']),
   mediaId: z.string().uuid().optional(), name: z.string().max(300), start: frame, duration: frame.min(1),
   groupId: z.string().uuid().optional(), linkId: z.string().uuid().optional(), effects: EffectsSchema.optional(),
-  captionJobId: z.string().uuid().optional(), captionType: z.enum(['captions','lyrics']).optional(),
+  captionJobId: z.string().uuid().optional(), captionCueId: z.string().min(1).max(100).optional(), captionType: z.enum(['captions','lyrics']).optional(),
   sourceIn: z.number().min(0).max(86400).default(0), speed: z.number().min(0.25).max(4).default(1),
   x: z.number().min(-2).max(2).default(0), y: z.number().min(-2).max(2).default(0), scale: z.number().min(0.05).max(4).default(1),
   rotation: z.number().min(-180).max(180).default(0), opacity: z.number().min(0).max(1).default(1),
@@ -24,11 +24,12 @@ export const ClipSchema = z.object({
   blur: z.number().min(0).max(20).default(0), chroma: z.boolean().default(false), chromaColor: hex.default('#00ff00'),
   chromaSimilarity: z.number().min(0.01).max(0.5).default(0.15), denoise: z.boolean().default(false),
   text: z.string().max(3000).default('在這裡，寫下你的故事。'), fontId: z.string().max(100).default('notosanstc'),
-  fontSize: z.number().min(12).max(300).default(72), color: hex.default('#ffffff'), textBackground: z.boolean().default(false),
+  fontSize: z.number().min(12).max(300).default(72), color: hex.default('#ffffff'),
   karaoke: KaraokeSchema.default({}),
   shape: z.enum(['rectangle','circle']).default('rectangle'), keyframes: z.array(KeyframeSchema).max(300).default([]),
 });
-export const TrackSchema = z.object({ id: z.string().min(1).max(100), name: z.string().max(100), kind: z.enum(['video','audio','text','effect']), muted: z.boolean().default(false), hidden: z.boolean().default(false), locked: z.boolean().default(false), manualTextLane: z.boolean().optional() }).transform(track => track.kind === 'text' && /^(?:文字與字幕|原稿字幕對齊|歌詞精準對齊|自動字幕|自動歌詞|手動校時歌詞)(?: \d+)*$/.test(track.name) ? { ...track, name: '文字與字幕' } : track);
+export const TextStyleSchema = ClipSchema.pick({fontId:true,fontSize:true,color:true,x:true,y:true,scale:true,rotation:true,opacity:true,flipX:true,flipY:true,fit:true,crop:true}).partial().extend({karaoke:KaraokeSchema.pick({enabled:true,color:true}).partial().optional()});
+export const TrackSchema = z.object({ id: z.string().min(1).max(100), name: z.string().max(100), kind: z.enum(['video','audio','text','effect']), muted: z.boolean().default(false), hidden: z.boolean().default(false), locked: z.boolean().default(false), manualTextLane: z.boolean().optional(), overflowOf: z.string().min(1).max(100).optional(), textStyle: TextStyleSchema.optional() }).transform(track => track.kind === 'text' && /^(?:文字與字幕|原稿字幕對齊|歌詞精準對齊|自動字幕|自動歌詞|手動校時歌詞)(?: \d+)*$/.test(track.name) ? { ...track, name: '文字與字幕' } : track);
 export const ProjectSchema = z.object({
   version: z.literal(1), id: z.string().uuid(), name: z.string().min(1).max(120), width: z.number().int().min(160).max(4096), height: z.number().int().min(160).max(4096),
   fps: FpsSchema, background: hex.default('#101418'), tracks: z.array(TrackSchema).min(1).max(32), clips: z.array(ClipSchema).max(20000),
@@ -52,6 +53,7 @@ export const ProjectSchema = z.object({
   }
 });
 export type Clip = z.infer<typeof ClipSchema>;
+export type TextStyle = z.infer<typeof TextStyleSchema>;
 export type Track = z.infer<typeof TrackSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
 export type Keyframe = z.infer<typeof KeyframeSchema>;
@@ -62,10 +64,8 @@ export type FontInfo = { id:string; family:string; label:string; language:'繁�
 
 export function newProject(): Project { return {version:1,id:uid(),name:projectDateName(),width:1920,height:1080,fps:30,background:'#101418',tracks:[
   {id:'text',name:'文字與字幕',kind:'text',muted:false,hidden:false,locked:false},
-  {id:'overlay',name:'疊加畫面',kind:'video',muted:false,hidden:false,locked:false},
-  {id:'main',name:'主影片',kind:'video',muted:false,hidden:false,locked:false},
-  {id:'voice',name:'人聲',kind:'audio',muted:false,hidden:false,locked:false},
-  {id:'music',name:'音樂',kind:'audio',muted:false,hidden:false,locked:false},
+  {id:'main',name:'影片與圖片',kind:'video',muted:false,hidden:false,locked:false},
+  {id:'music',name:'人聲與音樂',kind:'audio',muted:false,hidden:false,locked:false},
 ],clips:[],mediaIds:[],effects:defaultEffects(),markers:[],updatedAt:new Date().toISOString()}; }
 export function makeClip(partial: Partial<Clip> & Pick<Clip,'kind'|'trackId'|'start'|'duration'>): Clip { return ClipSchema.parse({id:uid(),name:partial.kind === 'text' ? '文字' : '新片段',...partial}); }
 export const endFrame = (p:Project) => Math.max(0,...p.clips.map(c=>c.start+c.duration));
@@ -100,6 +100,6 @@ export function activeClips(p:Project,at:number) { const order=new Map(p.tracks.
 export function parseSrt(text:string,fps:number,trackId='text'): Clip[] {
   const blocks=text.replace(/^\uFEFF/,'').replace(/\r/g,'').trim().split(/\n\s*\n/);
   const parse=(s:string)=> { const m=s.match(/(\d+):(\d{2}):(\d{2})[,.](\d{3})/); return m?Math.round((+m[1]*3600 + +m[2]*60 + +m[3]+ +m[4]/1000)*fps):NaN; };
-  return blocks.flatMap(b=>{const lines=b.split('\n');const i=lines.findIndex(l=>l.includes('-->'));if(i<0)return[];const [a,z]=lines[i].split('-->').map(parse); const content=lines.slice(i+1).join('\n').replace(/<[^>]*>/g,'');if(!Number.isFinite(a)||!Number.isFinite(z)||z<=a||!content.trim())return[];return [makeClip({kind:'text',trackId,start:a,duration:z-a,captionType:'captions',name:content.slice(0,30),text:content,y:0.35,fontSize:56,textBackground:true})];});
+  return blocks.flatMap(b=>{const lines=b.split('\n');const i=lines.findIndex(l=>l.includes('-->'));if(i<0)return[];const [a,z]=lines[i].split('-->').map(parse); const content=lines.slice(i+1).join('\n').replace(/<[^>]*>/g,'');if(!Number.isFinite(a)||!Number.isFinite(z)||z<=a||!content.trim())return[];return [makeClip({kind:'text',trackId,start:a,duration:z-a,captionType:'captions',name:content.slice(0,30),text:content,y:0.35,fontSize:56})];});
 }
 export function toSrt(p:Project) { const stamp=(f:number)=>{const ms=Math.round(f/p.fps*1000);return `${String(Math.floor(ms/3600000)).padStart(2,'0')}:${String(Math.floor(ms/60000)%60).padStart(2,'0')}:${String(Math.floor(ms/1000)%60).padStart(2,'0')},${String(ms%1000).padStart(3,'0')}`;};return p.clips.filter(c=>c.kind==='text').sort((a,b)=>a.start-b.start).map((c,i)=>`${i+1}\n${stamp(c.start)} --> ${stamp(c.start+c.duration)}\n${c.text}\n`).join('\n'); }

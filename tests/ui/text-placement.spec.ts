@@ -21,7 +21,7 @@ test('new subtitles start at the playhead in a gap or overlap and retain unified
   await expect(page.getByLabel('開始秒數', { exact: true })).toHaveValue('3');
   await expect(page.getByText('已儲存至本機', { exact: true })).toBeVisible();
   let saved: Project = await (await page.request.get(`/api/projects/${p.id}`)).json();
-  expect(saved.clips.slice(0, 2)).toEqual(p.clips.map(clip => ({ ...clip, trackId: 'text' })));
+  expect(saved.clips.slice(0, 2)).toEqual(p.clips);
   expect(saved.clips.slice(2).map(clip => clip.start)).toEqual([90, 90]);
   expect(saved.clips[2].trackId).not.toBe(saved.clips[3].trackId);
   expect(saved.tracks.filter(track => track.kind === 'text').map(track => track.name)).toEqual(['文字與字幕', '文字與字幕']);
@@ -38,7 +38,7 @@ test('new subtitles start at the playhead in a gap or overlap and retain unified
   await expect(page.locator('.track-header').filter({ hasText: '文字與字幕' })).toHaveCount(2);
 });
 
-test('text styles append after the track tail; compact font properties edit one existing clip',async({page})=>{
+test('text styles append after the track tail; compact font properties update every clip on that track',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   const p=newProject();p.name='文字接續與字型屬性';await page.request.put(`/api/projects/${p.id}`,{headers:{'X-MyCut':'1'},data:p});
   await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
@@ -51,7 +51,7 @@ test('text styles append after the track tail; compact font properties edit one 
   await openFonts(page);await expect(page.locator('.inspector .font-card')).toHaveCount(40);
   const labels=await page.locator('.font-choice>span').allTextContents();const fonts=await(await page.request.get('/api/fonts')).json();expect(labels).toEqual(fonts.map((f:any)=>f.label));
   await page.getByRole('button',{name:'套用字型：jf open 粉圓',exact:true}).click();await fontIs(page,'huninn');
-  await expect(page.locator('.timeline-footer')).toContainText('4 個片段');const after=await read();expect(after.clips.map(c=>c.id)).toEqual(before.clips.map(c=>c.id));expect(after.clips.slice(0,-1)).toEqual(before.clips.slice(0,-1));expect(after.clips.at(-1)!.fontId).toBe('huninn');
+  await expect(page.locator('.timeline-footer')).toContainText('4 個片段');const after=await read();expect(after.clips.map(c=>c.id)).toEqual(before.clips.map(c=>c.id));expect(after.clips).toEqual(before.clips.map(c=>({...c,fontId:'huninn'})));expect(after.tracks.find(t=>t.id==='text')!.textStyle?.fontId).toBe('huninn');
   await page.screenshot({path:'test-results/text-font-properties.png',fullPage:true});
   await page.locator('.clip-text').first().click();
   await page.getByRole('button',{name:/^複製片段（/}).click();await expect(page.getByLabel('開始秒數',{exact:true})).toHaveValue('12');

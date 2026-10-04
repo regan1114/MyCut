@@ -16,10 +16,15 @@ export function applyCaptions(p:Project,job:CaptionJob,cues:Cue[],media:Media[],
   if(p.id!==job.projectId)throw new Error('辨識結果屬於另一個專案');
   if(audioSignature(p,media,job.options.clipId)!==job.signature)throw new Error('音訊時間軸已改變，請重新辨識以確保時間正確');
   validateCues(cues,p.fps);const track=primaryTextTrack(p);
-  const oldTrackIds=new Set(p.clips.filter(c=>c.captionJobId===job.id).map(c=>c.trackId));if(p.tracks.some(t=>oldTrackIds.has(t.id)&&t.locked))throw new Error('請先解鎖這批字幕的軌道');if(!track&&p.tracks.length>=32)throw new Error('最多 32 條軌道，請先移除一條空軌道');
+  const previous=p.clips.filter(c=>c.captionJobId===job.id),oldTrackIds=new Set(previous.map(c=>c.trackId));if(p.tracks.some(t=>oldTrackIds.has(t.id)&&t.locked))throw new Error('請先解鎖這批字幕的軌道');if(!track&&p.tracks.length>=32)throw new Error('最多 32 條軌道，請先移除一條空軌道');
   const trackId=track?.id??uid();const name='文字與字幕';
-  const clips=cues.map(c=>makeClip({kind:'text',trackId,start:c.start,duration:c.duration,text:c.text,name:c.text.trim().slice(0,30),fontId,fontSize:56,y:.35,textBackground:true,captionJobId:job.id,captionType:job.options.mode,karaoke:{...defaultKaraoke(),enabled:!!job.options.karaoke&&validWordTiming(c.text,c.words??[]),source:job.alignment?'alignment':'whisper',words:validWordTiming(c.text,c.words??[])?c.words!:[]}}));
-  const remaining=p.clips.filter(c=>c.captionJobId!==job.id);const retained=p.tracks.filter(t=>t.id===trackId||!oldTrackIds.has(t.id)||remaining.some(c=>c.trackId===t.id));
+  const byCue=new Map(previous.filter(c=>c.captionCueId).map(c=>[c.captionCueId,c]));
+  const legacyByTime=new Map<number,typeof previous>();for(const c of previous)if(!c.captionCueId)legacyByTime.set(c.start,[...(legacyByTime.get(c.start)??[]),c]);
+  const clips=cues.map(c=>{
+    const prior=byCue.get(c.id)??legacyByTime.get(c.start)?.shift();
+    return makeClip({kind:'text',trackId:prior?.trackId??trackId,start:c.start,duration:c.duration,text:c.text,name:c.text.trim().slice(0,30),fontId,fontSize:56,y:.35,captionJobId:job.id,captionCueId:c.id,captionType:job.options.mode,karaoke:{...defaultKaraoke(),enabled:!!job.options.karaoke&&validWordTiming(c.text,c.words??[]),source:job.alignment?'alignment':'whisper',words:validWordTiming(c.text,c.words??[])?c.words!:[]}});
+  });
+  const remaining=p.clips.filter(c=>c.captionJobId!==job.id);const retained=p.tracks.filter(t=>t.id===trackId||t.textStyle||t.manualTextLane||t.hidden||t.muted||t.locked||!oldTrackIds.has(t.id)||remaining.some(c=>c.trackId===t.id)||clips.some(c=>c.trackId===t.id));
   const result=insertTimedClips({...p,tracks:track?retained:[{id:trackId,name,kind:'text' as const,muted:false,hidden:false,locked:false},...p.tracks],clips:remaining},clips);if(result.clips.length>20000)throw new Error('專案片段數超過 20,000');return result;
 }
 export function cuesToSrt(cues:Cue[],fps:number){const stamp=(f:number)=>{const ms=Math.round(f/fps*1000);return `${String(Math.floor(ms/3600000)).padStart(2,'0')}:${String(Math.floor(ms/60000)%60).padStart(2,'0')}:${String(Math.floor(ms/1000)%60).padStart(2,'0')},${String(ms%1000).padStart(3,'0')}`;};return [...cues].sort((a,b)=>a.start-b.start).map((c,i)=>`${i+1}\n${stamp(c.start)} --> ${stamp(c.start+c.duration)}\n${c.text}\n`).join('\n');}

@@ -39,7 +39,7 @@ test('playback, jumps and zoom keep the playhead in view, and returning to the s
   await page.getByRole('button',{name:'回到開頭',exact:true}).click();await expect.poll(()=>scroll.evaluate(el=>el.scrollLeft)).toBe(0);
 });
 
-test('text overlap makes a lane; vertical drags add lanes above and below and empty lanes disappear',async({page})=>{
+test('text overlap makes a lane; vertical drags add lanes above and below and empty manual lanes remain independent',async({page})=>{
   const p=newProject();p.name='動態字幕軌道';p.clips=[makeClip({kind:'text',trackId:'text',start:0,duration:60,text:'第一句'}),makeClip({kind:'text',trackId:'text',start:90,duration:60,text:'移動這句'})];
   await page.request.put(`/api/projects/${p.id}`,{headers:{'X-MyCut':'1'},data:p});await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
   await page.getByRole('button',{name:'磁吸對齊',exact:true}).click();
@@ -53,9 +53,9 @@ test('text overlap makes a lane; vertical drags add lanes above and below and em
   await page.getByRole('button',{name:/^復原/}).click();await expect(headers).toHaveCount(1);await page.getByRole('button',{name:/^重做/}).click();await expect(headers).toHaveCount(2);
   await page.getByRole('button',{name:'返回專案首頁',exact:true}).click();await page.reload();await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();await expect(headers).toHaveCount(2);
   lane=(await page.locator('[data-track="text"]').boundingBox())!;
-  await drag(0,lane.y+lane.height/2);await expect(headers).toHaveCount(1);
+  await drag(0,lane.y+lane.height/2);await expect(headers).toHaveCount(2);
   lane=(await page.locator('[data-track="text"]').boundingBox())!;
-  await drag(0,lane.y+lane.height+18);await expect(headers).toHaveCount(2);saved=await read();expect(saved.tracks[1].id).toBe(saved.clips[1].trackId);expect(saved.clips[1].start).toBe(90);
+  await drag(0,lane.y+lane.height+18);await expect(headers).toHaveCount(3);saved=await read();expect(saved.tracks[saved.tracks.findIndex(t=>t.id==='text')+1].id).toBe(saved.clips[1].trackId);expect(saved.clips[1].start).toBe(90);
   await page.screenshot({path:'test-results/dynamic-text-lanes.png',fullPage:true});
-  await page.getByRole('button',{name:'刪除（Delete）',exact:true}).click();await expect(headers).toHaveCount(1);await expect(page.locator('.clip-text')).toHaveCount(1);
+  await page.getByRole('button',{name:'刪除（Delete）',exact:true}).click();await expect(headers).toHaveCount(3);await expect(page.locator('.clip-text')).toHaveCount(1);
 });

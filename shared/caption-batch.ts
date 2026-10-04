@@ -1,6 +1,7 @@
 import { ProjectSchema, type Clip, type Project } from './model';
+import { setTrackTextStyle } from './text-style';
 
-export type CaptionBatchOptions={find:string;replace:string;punctuation:'keep'|'remove'|'traditional';lineLength:number;style?:Pick<Clip,'fontId'|'fontSize'|'color'|'textBackground'>};
+export type CaptionBatchOptions={find:string;replace:string;punctuation:'keep'|'remove'|'traditional';lineLength:number;style?:Pick<Clip,'fontId'|'fontSize'|'color'>};
 const segmenter=new Intl.Segmenter('zh-TW',{granularity:'grapheme'});
 export function wrapCaption(text:string,limit:number){
   if(!limit)return text;
@@ -13,15 +14,18 @@ export function wrapCaption(text:string,limit:number){
 export function applyCaptionBatch(p:Project,ids:readonly string[],options:CaptionBatchOptions):Project {
   if(!Number.isInteger(options.lineLength)||options.lineLength<0||options.lineLength>80)throw new Error('每行字數需為 0 至 80 的整數。');
   const selected=new Set(ids);const punctuation:Record<string,string>={',':'，','.':'。','?':'？','!':'！',':':'：',';':'；','(':'（',')':'）'};
-  return ProjectSchema.parse({...p,clips:p.clips.map(c=>{
+  const trackIds=new Set<string>();
+  const result={...p,clips:p.clips.map(c=>{
     if(c.kind!=='text'||!selected.has(c.id)||p.tracks.find(t=>t.id===c.trackId)?.locked)return c;
+    trackIds.add(c.trackId);
     let text=c.text;if(options.find)text=text.split(options.find).join(options.replace);
     if(options.punctuation==='remove')text=text.replace(/\p{P}/gu,'');
     if(options.punctuation==='traditional')text=text.replace(/[,\.?!:;()]/g,v=>punctuation[v]);
     text=wrapCaption(text,options.lineLength);
     if(!text.trim())throw new Error(`「${c.name}」套用後沒有文字，請調整取代條件。`);
-    return {...c,...options.style,text,...(text!==c.text?{name:text.replace(/\n/g,' ').slice(0,30),karaoke:{...c.karaoke,enabled:false,words:[],offset:0}}:{})};
-  })});
+    return {...c,text,...(text!==c.text?{name:text.replace(/\n/g,' ').slice(0,30),karaoke:{...c.karaoke,enabled:false,words:[],offset:0}}:{})};
+  })};
+  return ProjectSchema.parse(options.style?setTrackTextStyle(result,[...trackIds],options.style):result);
 }
 /** Only same-track overlaps are flagged; intentional bilingual tracks are independent. */
 export function captionOverlaps(clips:Clip[]):Set<string>{
