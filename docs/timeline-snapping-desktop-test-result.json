@@ -1,0 +1,16 @@
+{
+  "version": "0.6.16",
+  "testedAt": "2026-10-07T06:57:00.868Z",
+  "platform": "darwin",
+  "arch": "x64",
+  "packagedApp": true,
+  "leftTrim": true,
+  "rightTrim": true,
+  "upperAndLowerTracks": true,
+  "snapRelease": true,
+  "snapToggle": true,
+  "groupEdges": true,
+  "undoRedo": true,
+  "savedTiming": true,
+  "errors": []
+}

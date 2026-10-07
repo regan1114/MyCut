@@ -1,0 +1,18 @@
+{
+  "version": "0.6.19",
+  "testedAt": "2026-10-07T10:08:57.082Z",
+  "platform": "darwin",
+  "arch": "x64",
+  "packagedApp": true,
+  "leftAndRightOption": true,
+  "clipArea": true,
+  "ruler": true,
+  "emptyTrack": true,
+  "toolbar": true,
+  "trackHeader": true,
+  "footer": true,
+  "pointerTimePreserved": true,
+  "ordinaryScrolling": true,
+  "projectTimingUnchanged": true,
+  "errors": []
+}

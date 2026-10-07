@@ -1,5 +1,5 @@
 import { clamp, evaluateClip, ProjectSchema, splitClip, uid, type Clip, type Media, type Project } from './model';
-import { appendClips, firstFreeStart, firstRangeAfter, occupiedRanges, insertTimedClips, primaryTextTrack, pruneTextTracks } from './placement';
+import { appendClips, firstFreeStart, firstRangeAfter, occupiedRanges, insertTimedClips, primaryTextTrack, pruneEmptyTracks } from './placement';
 import { setTrackTextStyle, textStylePatch } from './text-style';
 
 /** Groups and linked audio/video are selected as a connected set. */
@@ -93,14 +93,14 @@ export function splitSelection(p:Project,ids:readonly string[],at:number) {
 export function removeSelection(p:Project,ids:readonly string[],ripple=false):Project {
   const clips=editableSelection(p,ids),selected=new Set(clips.map(c=>c.id));
   const remaining=p.clips.filter(c=>!selected.has(c.id));
-  if(!ripple)return pruneTextTracks({...p,clips:remaining});
+  if(!ripple)return pruneEmptyTracks({...p,clips:remaining});
   const intervals=new Map<string,{start:number;end:number}[]>();
   for(const track of p.tracks){const merged:{start:number;end:number}[]=[];for(const c of clips.filter(c=>c.trackId===track.id).sort((a,b)=>a.start-b.start)){const prev=merged.at(-1);if(prev&&prev.end>=c.start)prev.end=Math.max(prev.end,c.start+c.duration);else merged.push({start:c.start,end:c.start+c.duration});}intervals.set(track.id,merged);}
   const shifts=new Map(remaining.map(c=>[c.id,(intervals.get(c.trackId)??[]).reduce((sum,r)=>sum+(r.end<=c.start?r.end-r.start:0),0)]));
   for(const c of remaining){const amount=shifts.get(c.id)!;if(!amount)continue;if(p.tracks.find(t=>t.id===c.trackId)?.locked)throw new Error('漣漪刪除會移動鎖定軌道。');
     if(expandSelection({...p,clips:remaining},[c.id]).some(id=>shifts.get(id)!==amount))throw new Error('漣漪刪除會改變群組或音畫同步，請改用一般刪除或先解除群組／連動。');
   }
-  return pruneTextTracks({...p,clips:remaining.map(c=>({...c,start:c.start-shifts.get(c.id)!}))});
+  return pruneEmptyTracks({...p,clips:remaining.map(c=>({...c,start:c.start-shifts.get(c.id)!}))});
 }
 export function setSelectionRelation(p:Project,ids:readonly string[],key:'groupId'|'linkId',enabled:boolean):Project {
   const clips=editableSelection(p,ids);if(enabled&&clips.length<2)throw new Error('請先選取至少兩個片段。');

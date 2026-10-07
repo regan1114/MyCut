@@ -44,25 +44,35 @@ test('an import completing after a project switch belongs to its original projec
 });
 
 test('recorded narration is registered in this project bin and survives reopening',async({page,context})=>{
-  await context.grantPermissions(['microphone']);const p=newProject();p.name='旁白素材保存';await open(page,p);await page.getByRole('navigation').getByRole('button',{name:'音訊',exact:true}).click();await page.getByRole('button',{name:'錄製旁白',exact:true}).click();
+  await context.grantPermissions(['microphone']);const p=newProject();p.name='旁白素材保存';await open(page,p);await page.getByRole('navigation').getByRole('button',{name:'素材',exact:true}).click();await page.getByRole('button',{name:'錄製旁白',exact:true}).click();
   await expect(page.getByRole('button',{name:'停止錄音並加入素材',exact:true})).toBeVisible();await page.waitForTimeout(1200);await page.getByRole('button',{name:'停止錄音並加入素材',exact:true}).click();await expect(page.locator('.media-card')).toHaveCount(1,{timeout:30000});
   const project=await saved(page,p.id);expect(project.mediaIds).toHaveLength(1);expect(project.clips).toHaveLength(0);await page.getByRole('button',{name:'返回專案首頁',exact:true}).click();await page.reload();await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();await expect(page.locator('.media-card')).toHaveCount(1);await expect(page.locator('.media-name')).toContainText('旁白');
 });
 
-test('audio ignores media type filters and both library views keep their own search',async({page})=>{
-  const uploaded=await upload(page,'音訊篩選歌曲.wav'),p=newProject();p.name='素材音訊獨立篩選';p.mediaIds=uploaded.imported;
+test('one media library shares search across types and keeps audio tools and track creation',async({page})=>{
+  const uploaded=await upload(page,'音訊篩選歌曲.wav'),p=newProject();p.name='素材與音訊整合';const demo=await(await page.request.post('/api/demo',{headers})).json();p.mediaIds=[...uploaded.imported,demo.project.clips[0].mediaId];
   await open(page,p);
-  const nav=page.getByRole('navigation'),panel=page.locator('.library-panel');
-  await panel.locator('.filter-chips').getByRole('button',{name:'影片',exact:true}).click();
-  await page.getByLabel('搜尋素材').fill('影片名稱');await expect(panel.locator('.media-card')).toHaveCount(0);
-  await nav.getByRole('button',{name:'音訊',exact:true}).click();await expect(page.getByLabel('搜尋音訊')).toHaveValue('');
-  await expect(panel.locator('.media-card')).toHaveCount(1);await expect(panel.getByRole('button',{name:'錄製旁白',exact:true})).toBeVisible();
-  await page.getByLabel('搜尋音訊').fill('沒有這首');await expect(panel.locator('.media-card')).toHaveCount(0);
-  await nav.getByRole('button',{name:'素材',exact:true}).click();await expect(page.getByLabel('搜尋素材')).toHaveValue('影片名稱');
-  await expect(panel.locator('.filter-chips').getByRole('button',{name:'影片',exact:true})).toHaveClass('active');
-  await panel.locator('.filter-chips').getByRole('button',{name:'全部',exact:true}).click();await page.getByLabel('搜尋素材').fill('');
+  const nav=page.getByRole('navigation'),panel=page.locator('.library-panel'),filters=panel.locator('.filter-chips');
+  await expect(nav.getByRole('button',{name:'音訊',exact:true})).toHaveCount(0);
+  await expect(panel.getByRole('button',{name:'錄製旁白',exact:true})).toBeVisible();
+  await expect(panel.getByRole('button',{name:'分離音訊',exact:true})).toBeDisabled();
+  await expect(panel.locator('.media-card')).toHaveCount(2);
+  await filters.getByRole('button',{name:'圖片',exact:true}).click();await expect(panel.locator('.media-card')).toHaveCount(1);await expect(panel.getByRole('button',{name:'加入 山間・原創示範素材.png',exact:true})).toBeVisible();
+  await filters.getByRole('button',{name:'全部',exact:true}).click();await page.getByLabel('搜尋素材').fill('歌曲');
+  await filters.getByRole('button',{name:'影片',exact:true}).click();await expect(panel.locator('.media-card')).toHaveCount(0);
+  await filters.getByRole('button',{name:'音訊',exact:true}).click();await expect(page.getByLabel('搜尋素材')).toHaveValue('歌曲');
   await expect(panel.locator('.media-card')).toHaveCount(1);
-  await nav.getByRole('button',{name:'音訊',exact:true}).click();await expect(page.getByLabel('搜尋音訊')).toHaveValue('沒有這首');
-  await page.getByLabel('搜尋音訊').fill('');await expect(panel.locator('.media-card')).toHaveCount(1);
-  await page.screenshot({path:'test-results/audio-independent-filter.png',fullPage:true});
+  await nav.getByRole('button',{name:'文字',exact:true}).click();await nav.getByRole('button',{name:'素材',exact:true}).click();
+  await expect(filters.getByRole('button',{name:'音訊',exact:true})).toHaveAttribute('aria-pressed','true');await expect(page.getByLabel('搜尋素材')).toHaveValue('歌曲');
+  await page.getByRole('button',{name:'新增軌道',exact:true}).click();let result=await saved(page,p.id);expect(result.tracks[0].kind).toBe('audio');
+  await panel.getByRole('button',{name:'加入 音訊篩選歌曲.wav',exact:true}).click();result=await saved(page,p.id);
+  expect(result.clips).toHaveLength(1);expect(result.tracks.find(t=>t.id===result.clips[0].trackId)?.kind).toBe('audio');
+  await page.getByLabel('搜尋素材').fill('沒有這首');await expect(panel.locator('.media-card')).toHaveCount(0);await expect(panel.locator('.library-empty')).toContainText('請調整搜尋或篩選條件');
+  await filters.getByRole('button',{name:'全部',exact:true}).click();await page.getByLabel('搜尋素材').fill('');await expect(panel.locator('.media-card')).toHaveCount(2);
+  await page.getByRole('button',{name:'新增軌道',exact:true}).click();result=await saved(page,p.id);expect(result.tracks[0].kind).toBe('video');
+  await page.mouse.move(800,80);await page.screenshot({path:'test-results/unified-media-library.png',fullPage:true});
+  await page.setViewportSize({width:1020,height:740});await page.getByRole('separator',{name:'調整功能區與播放器寬度'}).press('Home');
+  expect(await panel.locator('.library-scroll').evaluate(el=>el.scrollWidth-el.clientWidth)).toBeLessThanOrEqual(1);
+  await expect(panel.getByRole('button',{name:'錄製旁白',exact:true})).toBeVisible();await expect(panel.getByRole('button',{name:'分離音訊',exact:true})).toBeVisible();
+  await page.screenshot({path:'test-results/unified-media-library-narrow.png',fullPage:true});
 });

@@ -41,7 +41,7 @@ test('panel dividers resize all three panels, enforce minimums, survive window r
   await page.getByRole('button', { name: '返回專案首頁' }).click(); await page.getByRole('button', { name: `開啟 ${p.name}`, exact: true }).click(); expect(await width(library)).toBeCloseTo(230); expect(await width(inspector)).toBeCloseTo(250);
 });
 
-test('caption properties only list and select; text tab edits selection and timeline uses live content', async ({ page }) => {
+test('caption properties list and select; text tab edits selection and timeline uses live content', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   const p = newProject(); p.name = '字幕屬性驗證';
   p.clips = [makeClip({ kind: 'text', trackId: 'text', start: 0, text: '第一行\n第二行', name: '新增文字', duration: 90 }), makeClip({ kind: 'text', trackId: 'text', start: 90, duration: 90, text: '第二句字幕', name: '新增字幕', captionType: 'captions' }), makeClip({ kind: 'shape', trackId: 'main', start: 0, duration: 180, name: '底圖' })];

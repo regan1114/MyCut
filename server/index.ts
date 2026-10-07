@@ -79,7 +79,9 @@ export async function startServer(options:{root?:string;port?:number;appRoot?:st
   app.post('/api/captions/:id/resume',async(req,res)=>{await speech.resume(id(req.params.id));res.json({ok:true});});
   const Settings=z.object({resolution:z.union([z.literal(720),z.literal(1080),z.literal(2160)]),quality:z.enum(['standard','high']),encoder:z.enum(['libx264','h264_videotoolbox'])});
   app.get('/api/exports',(_req,res)=>res.json(jobs.list()));
-  app.post('/api/exports',async(req,res)=>{const job=await jobs.create(req.body.project,Settings.parse(req.body.settings));res.json({id:job.id});});
+  app.post('/api/exports',async(req,res)=>{const job=await jobs.create(req.body.project,Settings.parse(req.body.settings));res.json(jobs.list().find(j=>j.id===job.id));});
+  app.get('/api/exports/:id',(req,res)=>{const job=jobs.list().find(j=>j.id===id(req.params.id));if(!job)return res.status(404).json({error:'匯出工作不存在'});res.json(job);});
+  app.delete('/api/exports/:id',async(req,res)=>{await jobs.remove(id(req.params.id));res.json({ok:true});});
   app.post('/api/exports/:id/pause',async(req,res)=>{await jobs.pause(id(req.params.id));res.json({ok:true});});
   app.post('/api/exports/:id/resume',async(req,res)=>{await jobs.resume(id(req.params.id));res.json({ok:true});});
   app.get('/api/exports/:id/file',async(req,res)=>{const j=jobs.get(id(req.params.id));if(j.status!=='completed')throw new Error('匯出尚未完成');res.download(path.join(jobs.dir(j),'output.mp4'),`${safeFileName(j.name)}.mp4`);});

@@ -1,0 +1,13 @@
+{
+  "version": "0.6.18",
+  "testedAt": "2026-10-07T09:59:19.260Z",
+  "packagedApp": true,
+  "unifiedNavigation": true,
+  "nativeAudioImport": true,
+  "mixedMedia": true,
+  "typeFilters": true,
+  "audioInsertion": true,
+  "audioTrackCreation": true,
+  "persistence": true,
+  "errors": []
+}

@@ -18,14 +18,14 @@ const p=projectWithOverlay();p.name='實際影音匯出驗證';p.clips=[
  makeClip({kind:'shape',trackId:'overlay',start:45,duration:60,color:'#5edacc',shape:'circle',scale:.2,x:.3,y:.2,keyframes:[{frame:0,x:-.2,y:.2,scale:.2,opacity:.6},{frame:60,x:.3,y:.2,scale:.3,opacity:.9}]}),
 ];
 const jobs=new Jobs(path.join(root,'exports'),library,fonts,fontRoot);await jobs.init();const job=await jobs.create(p,{resolution:720,quality:'standard',encoder:'libx264'});
-let pauseTested=false;let restored=false;let deadline=Date.now()+180000;
+let pauseTested=false;let historyNotRestored=false;let deadline=Date.now()+180000;
 while(!['completed','failed'].includes(job.status)){
  await new Promise(r=>setTimeout(r,150));
- if(!pauseTested&&job.completedSegments>=1&&job.status==='running'){await jobs.pause(job.id);pauseTested=true;while(jobs.isRunning)await new Promise(r=>setTimeout(r,50));assert.equal(job.status,'paused');const completed=job.completedSegments;const restoredJobs=new Jobs(path.join(root,'exports'),library,fonts,fontRoot);await restoredJobs.init();assert.equal(restoredJobs.get(job.id).completedSegments,completed);restored=true;await jobs.resume(job.id);console.log(`Pause / restore / resume verified after ${completed} segments.`);}
+ if(!pauseTested&&job.completedSegments>=1&&job.status==='running'){await jobs.pause(job.id);pauseTested=true;while(jobs.isRunning)await new Promise(r=>setTimeout(r,50));assert.equal(job.status,'paused');const completed=job.completedSegments;const restoredJobs=new Jobs(path.join(root,'exports'),library,fonts,fontRoot);await restoredJobs.init();assert.deepEqual(restoredJobs.list(),[]);assert.equal(job.completedSegments,completed);historyNotRestored=true;await jobs.resume(job.id);console.log(`Pause / resume without history verified after ${completed} segments.`);}
  if(Date.now()>deadline)throw new Error('Export timed out');
 }
-assert.equal(job.status,'completed',job.error);assert.equal(pauseTested,true);assert.equal(restored,true);
+assert.equal(job.status,'completed',job.error);assert.equal(pauseTested,true);assert.equal(historyNotRestored,true);
 const output=path.join(jobs.dir(job),'output.mp4');const info=await probe(output);assert.ok(Math.abs(Number(info.format.duration)-6)<.1);const v=info.streams.find((s:any)=>s.codec_type==='video');const a=info.streams.find((s:any)=>s.codec_type==='audio');assert.equal(v.width,1280);assert.equal(v.height,720);assert.equal(v.nb_frames,'180');assert.equal(a.sample_rate,'48000');
 await ffmpeg(['-ss','2','-i',output,'-frames:v','1',path.join(root,'frame.png')]);
 const invalid={...p,id:crypto.randomUUID(),clips:[{...p.clips[0],mediaId:crypto.randomUUID()}]};await assert.rejects(()=>jobs.create(invalid,{resolution:720,quality:'standard',encoder:'libx264'}),/素材不存在/);
-console.log(JSON.stringify({success:true,duration:info.format.duration,frames:v.nb_frames,audioDuration:a.duration,output,frame:path.join(root,'frame.png'),pauseResume:true,restoredManifest:true},null,2));library.close();jobs.close();
+console.log(JSON.stringify({success:true,duration:info.format.duration,frames:v.nb_frames,audioDuration:a.duration,output,frame:path.join(root,'frame.png'),pauseResume:true,historyNotRestored:true},null,2));library.close();jobs.close();

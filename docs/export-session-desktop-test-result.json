@@ -1,0 +1,16 @@
+{
+  "version": "0.6.20",
+  "testedAt": "2026-10-07T10:23:29.486Z",
+  "platform": "darwin",
+  "arch": "x64",
+  "packagedApp": true,
+  "currentJobOnly": true,
+  "confirmation": true,
+  "declineKeepsExporting": true,
+  "confirmStopsAndCloses": true,
+  "nativeWindowCloseConfirmation": true,
+  "pauseResume": true,
+  "completedMovie": true,
+  "noHistoryOnReopen": true,
+  "errors": []
+}

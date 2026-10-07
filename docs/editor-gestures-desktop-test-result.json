@@ -1,0 +1,17 @@
+{
+  "version": "0.6.15",
+  "testedAt": "2026-10-07T02:45:47.424Z",
+  "platform": "darwin",
+  "arch": "x64",
+  "packagedApp": true,
+  "logoDrag": true,
+  "animatedLogoDrag": true,
+  "lockedLogo": true,
+  "undoRedo": true,
+  "persistence": true,
+  "legacyEmptyTrackCleanup": true,
+  "moveAndDeleteTrackCleanup": true,
+  "zoomedTimelineDragKeepsViewport": true,
+  "zoomedImageTiming": true,
+  "errors": []
+}

@@ -64,7 +64,7 @@ test('audio actions live on left, clip properties on right, and keyframes use on
     p.clips = [makeClip({ kind: 'video', trackId: 'main', mediaId: media.imported[0], start: 0, duration: 60, name: '有聲影片' }), makeClip({ kind: 'shape', trackId: 'overlay', start: 0, duration: 60, name: '圖形' })];
     await open(page, p);
     const left = page.locator('.library-panel'), right = page.locator('.inspector');
-    await page.getByRole('navigation').getByRole('button', { name: '音訊', exact: true }).click();
+    await page.getByRole('navigation').getByRole('button', { name: '素材', exact: true }).click();
     await expect(left.getByRole('button', { name: '分離音訊', exact: true })).toBeDisabled();
     await page.locator('.clip-video').click();
     await right.getByRole('button', { name: '音訊', exact: true }).click();

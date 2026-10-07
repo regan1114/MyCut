@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Maximize, Volume2, VolumeX } from 'lucide-react';
 import { activeClips, clamp, clipOpacity, evaluateClip, endFrame, timecode, type Project, type Media, type FontInfo, type Clip } from '../../shared/model';
 import { clipSvg } from '../../shared/text-svg';
@@ -7,8 +7,9 @@ import { renderEffects, rhythmEffectSpeed } from '../../shared/effects';
 import { effectLayersAt } from '../../shared/effect-timeline';
 import { sampleRhythm } from '../../shared/rhythm';
 import { useRhythm } from '../hooks/useRhythm';
+import { editableSelection, patchInspectorClip } from '../../shared/editing';
 
-type Props={playRange?:{start:number;end:number;nonce:number};project:Project;media:Media[];fonts:FontInfo[];frame:number;playing:boolean;setFrame:(v:number)=>void;setPlaying:(v:boolean)=>void;onSelect:(id:string)=>void;selected?:string;onError:(s:string)=>void};
+type Props={playRange?:{start:number;end:number;nonce:number};project:Project;media:Media[];fonts:FontInfo[];frame:number;playing:boolean;setFrame:(v:number)=>void;setPlaying:(v:boolean)=>void;onSelect:(id:string)=>void;selected?:string;onError:(s:string)=>void;update:(fn:(p:Project)=>Project,history?:boolean)=>void;checkpoint:()=>void};
 type PreviewSource={element:HTMLVideoElement|HTMLImageElement|HTMLAudioElement;url:string;gain?:GainNode;node?:MediaElementAudioSourceNode};
 type TextSurface={canvas:HTMLCanvasElement;clip?:Clip;fonts?:FontInfo[];fontRevision?:number;projectWidth?:number;frame?:number;animated?:boolean};
 function releaseSource(source:PreviewSource){
@@ -16,8 +17,10 @@ function releaseSource(source:PreviewSource){
   if(el instanceof HTMLMediaElement){el.onloadeddata=null;el.onseeked=null;el.pause();el.removeAttribute('src');el.load();}else el.removeAttribute('src');
   source.node?.disconnect();source.gain?.disconnect();
 }
-export default function Preview({playRange,project:p,media,fonts,frame,playing,setFrame,setPlaying,onSelect,selected,onError}:Props){
+export default function Preview({playRange,project:p,media,fonts,frame,playing,setFrame,setPlaying,onSelect,selected,onError,update,checkpoint}:Props){
   const canvas=useRef<HTMLCanvasElement>(null);const stage=useRef<HTMLDivElement>(null);const sources=useRef(new Map<string,PreviewSource>());
+  const gestureCleanup=useRef<(()=>void)|undefined>(undefined);
+  useEffect(()=>()=>gestureCleanup.current?.(),[p.id]);
   // Cache only active text, with at most eight 960×540 surfaces plus one reusable overflow surface.
   const textSurfaces=useRef(new Map<string,TextSurface>()),overflowText=useRef<TextSurface|undefined>(undefined);
   const fontLoads=useRef(new Map<string,Promise<FontFace[]>>()),[fontRevision,setFontRevision]=useState(0);
@@ -25,6 +28,39 @@ export default function Preview({playRange,project:p,media,fonts,frame,playing,s
   const audioContext=useRef<AudioContext|undefined>(undefined);const [muted,setMuted]=useState(false);const [ready,setReady]=useState(0);const props=useRef({p,frame,playing});props.current={p,frame,playing};
   const active=useMemo(()=>activeClips(p,frame),[p,frame]);const previewScale=Math.min(1,960/p.width,540/p.height),width=Math.max(1,Math.round(p.width*previewScale)),height=Math.max(1,Math.round(p.height*previewScale));
   const duration=useMemo(()=>endFrame(p),[p.clips]);
+  const mediaBounds=(c:Clip)=>{
+    if(c.kind!=='video'&&c.kind!=='image')return;
+    const m=media.find(m=>m.id===c.mediaId);if(!m?.width||!m.height)return;
+    const state=evaluateClip(c,frame-c.start),ratio=Math.min(width/m.width,height/m.height);
+    return {x:width*(.5+state.x),y:height*(.5+state.y),width:(c.fit==='cover'?width:m.width*ratio)*state.scale,height:(c.fit==='cover'?height:m.height*ratio)*state.scale,rotation:c.rotation*Math.PI/180};
+  };
+  const hitMedia=(clientX:number,clientY:number)=>{
+    const rect=canvas.current!.getBoundingClientRect(),x=(clientX-rect.left)*width/rect.width,y=(clientY-rect.top)*height/rect.height;
+    return active.slice().reverse().find(c=>{
+      const bounds=mediaBounds(c);if(!bounds||clipOpacity(c,frame-c.start)<=0)return false;
+      const dx=x-bounds.x,dy=y-bounds.y,cos=Math.cos(bounds.rotation),sin=Math.sin(bounds.rotation);
+      return Math.abs(dx*cos+dy*sin)<=bounds.width/2&&Math.abs(dy*cos-dx*sin)<=bounds.height/2;
+    });
+  };
+  const dragMedia=(event:PointerEvent<HTMLCanvasElement>)=>{
+    if(event.button!==0)return;gestureCleanup.current?.();event.currentTarget.focus({preventScroll:true});
+    const clip=hitMedia(event.clientX,event.clientY);
+    if(!clip){const other=active.slice().reverse().find(c=>c.kind==='text'||c.kind==='shape');if(other)onSelect(other.id);return;}
+    event.preventDefault();setPlaying(false);onSelect(clip.id);
+    try{editableSelection(p,[clip.id]);}catch(error){onError(error instanceof Error?error.message:'無法移動畫面。');return;}
+    const el=event.currentTarget,rect=el.getBoundingClientRect(),state=evaluateClip(clip,frame-clip.start),originX=event.clientX,originY=event.clientY,pointerId=event.pointerId;let started=false;
+    el.setPointerCapture(pointerId);el.style.cursor='grabbing';
+    const move=(e:globalThis.PointerEvent)=>{
+      if(e.pointerId!==pointerId||!(e.buttons&1))return;
+      const dx=e.clientX-originX,dy=e.clientY-originY;if(!started&&Math.hypot(dx,dy)<3)return;
+      if(!started){checkpoint();started=true;}
+      try{update(()=>patchInspectorClip(p,clip.id,{x:clamp(state.x+dx/rect.width,-2,2),y:clamp(state.y+dy/rect.height,-2,2)},media,frame),false);}
+      catch(error){cleanup();onError(error instanceof Error?error.message:'無法移動畫面。');}
+    };
+    const up=(e:globalThis.PointerEvent)=>{if(e.pointerId===pointerId)cleanup();};
+    const cleanup=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up);window.removeEventListener('blur',cleanup);el.removeEventListener('lostpointercapture',cleanup);gestureCleanup.current=undefined;if(el.hasPointerCapture(pointerId))el.releasePointerCapture(pointerId);el.style.cursor='';};
+    gestureCleanup.current=cleanup;window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);window.addEventListener('blur',cleanup);el.addEventListener('lostpointercapture',cleanup);
+  };
   const fontKey=JSON.stringify([...new Set(active.filter(c=>c.kind==='text').flatMap(c=>[fonts.find(f=>f.id===c.fontId)?.family??'Noto Sans TC','Noto Sans TC']))].sort());
   useEffect(()=>{let animation=0;let started=0;let first=frame;const animate=(now:number)=>{if(!started){started=now;first=playRange?.start??props.current.frame;}const next=first+Math.floor((now-started)/1000*props.current.p.fps);const end=playRange?Math.min(duration,playRange.end):duration;if(next>=end){setFrame(playRange?end:Math.max(0,end-1));setPlaying(false);return;}if(next!==props.current.frame)setFrame(next);animation=requestAnimationFrame(animate);};if(playing)animation=requestAnimationFrame(animate);return()=>cancelAnimationFrame(animation);},[playing,setFrame,setPlaying,duration,playRange]);
   useEffect(()=>{
@@ -85,11 +121,13 @@ export default function Preview({playRange,project:p,media,fonts,frame,playing,s
     const layers=effectLayersAt(p,frame);if(layers.length){const source=effectSource.current??(effectSource.current=document.createElement('canvas'));if(source.width!==width||source.height!==height){source.width=width;source.height=height;}const sc=source.getContext('2d')!;const scratch=effectScratch.current??(effectScratch.current=document.createElement('canvas'));if(scratch.width!==width||scratch.height!==height){scratch.width=width;scratch.height=height;}
       for(const effects of layers){sc.clearRect(0,0,width,height);sc.drawImage(cvs,0,0);renderEffects(ctx,source,width,height,frame/p.fps,effects,sampleRhythm(p,frame/p.fps,rhythm.features,rhythmEffectSpeed(effects)),scratch.getContext('2d')!);}
     }
-  },[p,frame,media,fonts,ready,fontRevision,width,height,rhythm.features]);
+    const selectedClip=active.find(c=>c.id===selected),bounds=!playing&&selectedClip?mediaBounds(selectedClip):undefined;
+    if(bounds){ctx.save();ctx.translate(bounds.x,bounds.y);ctx.rotate(bounds.rotation);ctx.strokeStyle='#0009';ctx.lineWidth=3;ctx.strokeRect(-bounds.width/2,-bounds.height/2,bounds.width,bounds.height);ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.setLineDash([5,3]);ctx.strokeRect(-bounds.width/2,-bounds.height/2,bounds.width,bounds.height);ctx.restore();}
+  },[p,frame,media,fonts,ready,fontRevision,width,height,rhythm.features,selected,playing]);
   useEffect(()=>{const map=sources.current;return()=>{for(const s of map.values())releaseSource(s);map.clear();for(const surface of textSurfaces.current.values()){surface.canvas.width=0;surface.canvas.height=0;}textSurfaces.current.clear();if(overflowText.current){overflowText.current.canvas.width=0;overflowText.current.canvas.height=0;overflowText.current=undefined;}void audioContext.current?.close();audioContext.current=undefined;};},[]);
   const seek=(f:number)=>{setPlaying(false);setFrame(clamp(f,0,Math.max(0,duration-1)));};
   return <section className="preview-panel"><div className="panel-header"><span>播放器</span><span className="subtle">{p.width} × {p.height} <span className="dot">·</span> {p.fps} fps</span></div>
-    <div className="preview-stage" ref={stage}><div className="canvas-wrap" style={{aspectRatio:`${p.width}/${p.height}`}}><canvas ref={canvas} width={width} height={height} onClick={()=>{const clip=active.slice().reverse().find(c=>c.kind!=='audio');if(clip)onSelect(clip.id);}}/>
+    <div className="preview-stage" ref={stage}><div className="canvas-wrap" style={{aspectRatio:`${p.width}/${p.height}`}}><canvas ref={canvas} width={width} height={height} tabIndex={0} aria-label="影片預覽，可拖曳影片或圖片調整位置" onPointerDown={dragMedia} onPointerMove={e=>{if(gestureCleanup.current)return;const clip=hitMedia(e.clientX,e.clientY);e.currentTarget.style.cursor=clip?(p.tracks.find(t=>t.id===clip.trackId)?.locked?'not-allowed':'grab'):'';}}/>
     {rhythm.status&&<div className={`fx-analysis ${rhythm.error?'error':''}`} role="status">{rhythm.status}{rhythm.error&&<button onClick={rhythm.retry}>重試</button>}</div>}
     {!p.clips.length&&<div className="preview-empty"><div className="empty-frame"><Play size={30}/></div><h2>每一個故事，都從這裡開始。</h2><p>匯入素材，拖放到時間軸</p></div>}</div></div>
     <div className="player-controls"><div className="time-display"><b>{timecode(frame,p.fps)}</b><span>/ {timecode(duration,p.fps)}</span></div><div className="play-buttons"><button data-tooltip="回到開頭" aria-label="回到開頭" onClick={()=>seek(0)}><SkipBack size={16}/></button><button className="play-main" data-tooltip={playing?'暫停（Space）':'播放（Space）'} aria-label={playing?'暫停（Space）':'播放（Space）'} disabled={!p.clips.length} onClick={()=>{if(frame>=duration-1)setFrame(0);setPlaying(!playing);}}>{playing?<Pause size={18} fill="currentColor"/>:<Play size={18} fill="currentColor"/>}</button><button data-tooltip="到結尾" aria-label="到結尾" onClick={()=>seek(duration-1)}><SkipForward size={16}/></button></div><div className="player-options"><button data-tooltip={muted?'取消預覽靜音':'預覽靜音'} aria-label={muted?'取消預覽靜音':'預覽靜音'} onClick={()=>setMuted(!muted)}>{muted?<VolumeX size={16}/>:<Volume2 size={16}/>}</button><span className="preview-quality">540p 預覽</span><button data-tooltip="全螢幕預覽" aria-label="全螢幕預覽" onClick={()=>void stage.current?.requestFullscreen()}><Maximize size={16}/></button></div></div>

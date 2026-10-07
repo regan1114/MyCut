@@ -14,20 +14,25 @@ export function firstFreeStart(ranges:{start:number;end:number}[],start:number,d
 
 const sharedTextLane=(t:Project['tracks'][number])=>t.kind==='text'&&t.name==='文字與字幕'&&!t.locked&&!t.hidden&&!t.muted&&!t.manualTextLane&&!t.textStyle;
 export const primaryTextTrack=(p:Project)=>p.tracks.find(t=>t.id==='text'&&t.kind==='text'&&!t.locked&&!t.hidden&&!t.muted)??p.tracks.find(sharedTextLane)??p.tracks.find(t=>t.kind==='text'&&!t.locked&&!t.hidden&&!t.muted);
-/** Keep independent text settings and manual lanes; discard unused automatic overflow lanes. */
-export function pruneTextTracks(p:Project):Project{
-  const used=new Set(p.clips.map(c=>c.trackId)),primary=primaryTextTrack(p);const keep=primary&&used.has(primary.id)?primary.id:p.tracks.find(t=>t.kind==='text'&&used.has(t.id))?.id??primary?.id;
-  return {...p,tracks:p.tracks.filter(t=>t.locked||t.hidden||t.muted||t.manualTextLane||t.textStyle||used.has(t.id)||(t.kind==='text'?t.name!=='文字與字幕'||t.id===keep:!t.overflowOf))};
+/** Keep a base lane of each kind and locked lanes; empty additional lanes can go even after manual placement. */
+export function pruneEmptyTracks(p:Project):Project{
+  const used=new Set(p.clips.map(c=>c.trackId)),keep=new Set<string>();
+  for(const kind of ['text','video','audio','effect'] as const){
+    const lanes=p.tracks.filter(t=>t.kind===kind),baseId=kind==='text'?'text':kind==='video'?'main':kind==='audio'?'music':'effect';
+    const base=lanes.find(t=>t.id===baseId)??lanes.find(t=>used.has(t.id))??lanes[0];if(base)keep.add(base.id);
+  }
+  const tracks=p.tracks.filter(t=>used.has(t.id)||keep.has(t.id)||t.locked);
+  return tracks.length===p.tracks.length?p:{...p,tracks};
 }
 /** Consolidate older automatic caption lanes without changing any cue times. */
 export function consolidateTextTracks(p:Project):Project{
-  const primary=primaryTextTrack(p);if(!primary||!sharedTextLane(primary))return pruneTextTracks(p);
+  const primary=primaryTextTrack(p);if(!primary||!sharedTextLane(primary))return pruneEmptyTracks(p);
   const lanes=[primary,...p.tracks.filter(t=>t.id!==primary.id&&sharedTextLane(t))],ranges=occupiedRanges(p),placements=new Map<string,string>();
   for(let i=1;i<lanes.length;i++){for(const c of p.clips.filter(c=>c.kind==='text'&&c.trackId===lanes[i].id)){
     const target=lanes.slice(0,i).find(t=>firstFreeStart(ranges.get(t.id)??[],c.start,c.duration)===c.start);if(!target)continue;
     placements.set(c.id,target.id);const lane=ranges.get(target.id)??[];lane.splice(firstRangeAfter(lane,c.start),0,{start:c.start,end:c.start+c.duration});ranges.set(target.id,lane);
   }ranges.set(lanes[i].id,(occupiedRanges({...p,clips:p.clips.filter(c=>c.trackId===lanes[i].id&&!placements.has(c.id))}).get(lanes[i].id)??[]));}
-  return pruneTextTracks({...p,clips:p.clips.map(c=>placements.has(c.id)?{...c,trackId:placements.get(c.id)!}:c)});
+  return pruneEmptyTracks({...p,clips:p.clips.map(c=>placements.has(c.id)?{...c,trackId:placements.get(c.id)!}:c)});
 }
 
 /** Legacy voice/music lanes share one type; overlaps keep their times on another lane. */
@@ -58,5 +63,5 @@ export function insertTimedClips(p:Project,clips:Clip[],previousTracks:ReadonlyM
     if(!trackId){if(tracks.length>=32)throw new Error('同軌時間已被占用，且已達 32 條軌道上限。請先整理軌道。');trackId=uid();tracks.splice(tracks.findIndex(t=>t.id===source.id),0,{...source,id:trackId,...(mediaLane?{overflowOf:source.overflowOf??source.id}:{}),name:source.kind==='text'?'文字與字幕':source.kind==='video'?'影片與圖片':source.kind==='audio'?'人聲與音樂':source.name});candidates.push(trackId);}
     lanes.set(source.id,candidates);const destination=tracks.find(t=>t.id===trackId)!;result.push({...applyTextStyle(c,previousTracks.get(c.id)===trackId?undefined:destination.textStyle),trackId});const lane=ranges.get(trackId)??[];lane.splice(firstRangeAfter(lane,c.start),0,{start:c.start,end:c.start+c.duration});ranges.set(trackId,lane);
   }
-  return ProjectSchema.parse(pruneTextTracks({...p,tracks,clips:result}));
+  return ProjectSchema.parse(pruneEmptyTracks({...p,tracks,clips:result}));
 }

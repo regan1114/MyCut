@@ -1,0 +1,17 @@
+{
+  "version": "0.6.21",
+  "testedAt": "2026-10-07T11:17:05.820Z",
+  "platform": "darwin",
+  "arch": "x64",
+  "packagedApp": true,
+  "rowDeletion": true,
+  "selectedAndUnselected": true,
+  "groupIsolation": true,
+  "lockedTracks": true,
+  "search": true,
+  "undoRedo": true,
+  "nextCaptionSelection": true,
+  "narrowLayout": true,
+  "persistence": true,
+  "errors": []
+}

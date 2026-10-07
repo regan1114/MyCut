@@ -1,11 +1,11 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { LockKeyhole, Plus, Search, X } from 'lucide-react';
+import { LockKeyhole, Plus, Search, Trash2, X } from 'lucide-react';
 import type { Clip, Project } from '../../shared/model';
 
-type Props = { project: Project; clip: Clip; active: boolean; onSelect: (clip: Clip) => void; onAdd: () => void };
+type Props = { project: Project; clip: Clip; active: boolean; onSelect: (clip: Clip) => void; onAdd: () => void; onRemove: (id: string) => void };
 const ROW_HEIGHT = 56, OVERSCAN = 5;
 
-export default function CaptionProperties({ project, clip, active, onSelect, onAdd }: Props) {
+export default function CaptionProperties({ project, clip, active, onSelect, onAdd, onRemove }: Props) {
   const list = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState('');
   const [scrollTop, setScrollTop] = useState(0), [height, setHeight] = useState(0);
@@ -46,9 +46,9 @@ export default function CaptionProperties({ project, clip, active, onSelect, onA
       <div ref={list} className="caption-property-list" role="list" aria-label="專案字幕清單" tabIndex={0} onScroll={e => { if (active) { position.current = e.currentTarget.scrollTop; setScrollTop(position.current); } }}>
         <div role="presentation" className="caption-list-space" style={{ height: filtered.length * ROW_HEIGHT }}>{filtered.slice(first, last).map((c, i) => {
         const locked = lockedTracks.has(c.trackId);
-        return <div role="listitem" aria-posinset={first + i + 1} aria-setsize={filtered.length} key={c.id} className="caption-list-row" style={{ top: (first + i) * ROW_HEIGHT, height: ROW_HEIGHT }}><button className={c.id === clip.id ? 'selected' : ''} aria-pressed={c.id === clip.id} disabled={locked} data-tooltip={locked ? '此字幕的軌道已鎖定' : c.text.trim().length > 160 ? c.text.trim().slice(0,160)+'…' : c.text.trim() || '空白文字'} onClick={() => onSelect(c)}>
+        return <div role="listitem" aria-posinset={first + i + 1} aria-setsize={filtered.length} key={c.id} className="caption-list-row" style={{ top: (first + i) * ROW_HEIGHT, height: ROW_HEIGHT }}><button className={`caption-list-select${c.id === clip.id ? ' selected' : ''}`} aria-pressed={c.id === clip.id} disabled={locked} data-tooltip={locked ? '此字幕的軌道已鎖定' : c.text.trim().length > 160 ? c.text.trim().slice(0,160)+'…' : c.text.trim() || '空白文字'} onClick={() => onSelect(c)}>
           <small>{numbers.get(c.id)}</small><span>{c.text.trim() || '空白文字'}</span>{locked && <LockKeyhole size={12}/>}
-        </button></div>;
+        </button><button className="caption-list-delete" aria-label={`刪除字幕 ${numbers.get(c.id)}`} data-tooltip={locked ? '此字幕的軌道已鎖定' : '刪除這則字幕'} disabled={locked} onClick={() => onRemove(c.id)}><Trash2 size={15}/></button></div>;
       })}</div>{!filtered.length && <p className="caption-list-empty">找不到符合的字幕</p>}</div>
     </section>
   </div>;

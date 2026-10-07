@@ -1,0 +1,21 @@
+{
+  "version": "0.6.17",
+  "testedAt": "2026-10-07T08:27:11.737Z",
+  "platform": "darwin",
+  "arch": "x64",
+  "packagedApp": true,
+  "directScale": true,
+  "directOpacity": true,
+  "directCrop": true,
+  "enterAndBlur": true,
+  "escapeAndEmptyInput": true,
+  "animatedTyping": true,
+  "unchangedPrecision": true,
+  "bounds": true,
+  "sliderSync": true,
+  "undoRedo": true,
+  "trackStyle": true,
+  "selectionIsolation": true,
+  "persistence": true,
+  "errors": []
+}

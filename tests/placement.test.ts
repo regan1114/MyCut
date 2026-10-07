@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { newProject, makeClip, uid, type Project } from '../shared/model';
-import { appendClips, insertTimedClips, overlaps, consolidateTextTracks } from '../shared/placement';
+import { appendClips, insertTimedClips, overlaps, consolidateTextTracks, pruneEmptyTracks } from '../shared/placement';
 import { moveSelection, trimSelection, patchLinkedClip, duplicateSelection, dissolveClip, removeSelection } from '../shared/editing';
 const clip=(start:number,duration=90,trackId='text')=>makeClip({kind:'text',trackId,start,duration});
 const clear=(p:Project)=>{for(const track of p.tracks){const lane=p.clips.filter(c=>c.trackId===track.id).sort((a,b)=>a.start-b.start);for(let i=1;i<lane.length;i++)assert.ok(!overlaps(lane[i-1],lane[i]),`overlap on ${track.id}`);}};
@@ -30,6 +30,24 @@ test('text moves and trims retain requested timing, reuse overflow lanes, and re
   const shortened=trimSelection(trimmed,[a.id],'right',-60,[]);assert.equal(shortened.tracks.filter(t=>t.kind==='text').length,1);assert.equal(shortened.clips[0].duration,60);clear(shortened);
   const later=insertTimedClips(moved,[clip(90,60),clip(120,60)]);assert.equal(later.tracks.filter(t=>t.kind==='text').length,2);clear(later);
   assert.equal(removeSelection(moved,[b.id]).tracks.filter(t=>t.kind==='text').length,1);
+});
+
+test('moving the only caption to a manual lane preserves the empty primary lane for the return trip',()=>{
+  const p=newProject(),caption=clip(60,60);p.clips=[caption];p.tracks.splice(1,0,{...p.tracks[0],id:'manual',manualTextLane:true});
+  const moved=moveSelection(p,[caption.id],0,'manual');
+  assert.equal(moved.clips[0].trackId,'manual');assert.deepEqual(moved.tracks,p.tracks);
+  const returned=moveSelection(moved,[caption.id],0,'text');
+  assert.equal(returned.clips[0].trackId,'text');assert.deepEqual(returned.tracks,newProject().tracks);
+});
+
+test('empty manual and media lanes are pruned without moving clips or deleting base and locked lanes',()=>{
+  const p=newProject(),before=structuredClone(p);
+  p.tracks.unshift({...p.tracks[0],id:'manual',manualTextLane:true,textStyle:{fontSize:80}}, {...p.tracks[1],id:'extra-video'}, {...p.tracks[2],id:'extra-audio'});
+  p.tracks.push({...p.tracks[0],id:'locked',locked:true});
+  p.clips=[clip(0,60,'manual'),clip(90,60)];
+  const cleaned=pruneEmptyTracks(p);assert.deepEqual(cleaned.clips,p.clips);assert.equal(cleaned.tracks.length,5);
+  const removed=removeSelection(cleaned,[p.clips[0].id]);assert.deepEqual(removed.tracks.map(t=>t.id),[...before.tracks.map(t=>t.id),'locked']);
+  const custom={...before,tracks:before.tracks.map(t=>({...t,id:'custom-'+t.id}))};assert.deepEqual(pruneEmptyTracks(custom),custom);
 });
 
 test('older automatic lanes consolidate while manual placement, locks and hidden tracks survive',()=>{

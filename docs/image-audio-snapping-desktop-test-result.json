@@ -1,0 +1,15 @@
+{
+  "version": "0.6.21",
+  "testedAt": "2026-10-07T11:21:12.837Z",
+  "platform": "darwin",
+  "arch": "x64",
+  "packagedApp": true,
+  "importedImageAndAudio": true,
+  "longAudio": true,
+  "backgroundAndUpperImage": true,
+  "fitAndScrolledTimeline": true,
+  "snapRelease": true,
+  "undoRedo": true,
+  "persistence": true,
+  "errors": []
+}

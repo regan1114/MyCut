@@ -54,7 +54,8 @@ export async function checkTextTracks(page:Page){
   await page.getByLabel('啟用卡拉 OK 高亮',{exact:true}).check();
   await page.getByRole('button',{name:'新增軌道',exact:true}).click();result=await saved(page,p);expect(result.tracks.filter(t=>t.kind==='text')).toHaveLength(3);
   await page.getByRole('button',{name:'返回專案首頁',exact:true}).click();await page.locator('.project-home').waitFor();await page.reload();await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
-  const reloaded=await saved(page,p);expect(reloaded.clips).toEqual(result.clips);expect(reloaded.tracks).toEqual(result.tracks);
+  const emptyTextTrack=result.tracks.find(t=>t.kind==='text'&&!result.clips.some(c=>c.trackId===t.id))!;
+  const reloaded=await saved(page,p);expect(reloaded.clips).toEqual(result.clips);expect(reloaded.tracks).toEqual(result.tracks.filter(t=>t.id!==emptyTextTrack.id));
   await page.screenshot({path:'test-results/track-settings-text.png',fullPage:true});
 }
 

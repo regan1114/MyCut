@@ -31,7 +31,7 @@ test('real editing, fonts, undo, trim, project persistence, export form and keyb
 });
 test('recording streams to disk, becomes valid audio, supports ranges and waveform',async({page})=>{
  await page.addInitScript(()=>{Object.defineProperty(navigator.mediaDevices,'getUserMedia',{value:async()=>{const context=new AudioContext();const tone=context.createOscillator();const dest=context.createMediaStreamDestination();tone.frequency.value=440;tone.connect(dest);tone.start();await context.resume();return dest.stream;}});});
- await page.goto('/');await page.getByRole('button',{name:'開啟示範專案',exact:true}).click();await expect(page.locator('.loading-screen')).toHaveCount(0);await page.getByRole('navigation').getByRole('button',{name:'音訊',exact:true}).click();
+ await page.goto('/');await page.getByRole('button',{name:'開啟示範專案',exact:true}).click();await expect(page.locator('.loading-screen')).toHaveCount(0);await page.getByRole('navigation').getByRole('button',{name:'素材',exact:true}).click();
  const firstChunk=page.waitForResponse(r=>/\/api\/recordings\/[^/]+\/0$/.test(r.url())&&r.request().method()==='POST');
  await page.getByRole('button',{name:'錄製旁白',exact:true}).click();await expect(page.getByRole('button',{name:'停止錄音並加入素材',exact:true})).toBeVisible();expect((await firstChunk).ok()).toBeTruthy();await page.getByRole('button',{name:'停止錄音並加入素材',exact:true}).click();
  await expect(page.locator('.media-name').filter({hasText:'旁白'})).toBeVisible({timeout:15000});

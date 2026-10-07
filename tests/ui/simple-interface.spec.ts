@@ -5,15 +5,15 @@ test('compact interface labels icons on hover and keyboard focus, including disa
   expect((await page.locator('.home-hero').boundingBox())!.height).toBeLessThan(200);await expect(page.locator('.home-art')).toHaveCount(0);
   await page.screenshot({path:'test-results/simple-home.png',fullPage:true});
   await page.getByRole('button',{name:'開啟示範專案',exact:true}).click();const nav=page.getByRole('navigation');
-  await expect(nav.getByRole('button')).toHaveCount(8);
+  await expect(nav.getByRole('button')).toHaveCount(7);
   for(const button of await nav.getByRole('button').all())expect((await button.innerText()).trim()).toBe('');
   const tooltip=page.getByRole('tooltip');
   await nav.getByRole('button',{name:'文字',exact:true}).hover();await expect(tooltip).toHaveText('文字');await expect(nav.getByRole('button',{name:'文字',exact:true})).toHaveAttribute('aria-describedby','mycut-tooltip');
   await page.keyboard.press('Escape');await expect(tooltip).toHaveCount(0);
   const split=page.getByRole('button',{name:/^分割（/});await expect(split).toBeDisabled();await split.hover();await expect(tooltip).toContainText('分割');
   await page.mouse.move(900,80);await expect(tooltip).toHaveCount(0);
-  await nav.getByRole('button',{name:'素材',exact:true}).focus();await page.keyboard.press('Tab');await expect(nav.getByRole('button',{name:'音訊',exact:true})).toBeFocused();await expect(tooltip).toHaveText('音訊');
-  await page.keyboard.press('Enter');await expect(tooltip).toHaveCount(0);await expect(nav.getByRole('button',{name:'音訊',exact:true})).toHaveAttribute('aria-pressed','true');
+  await nav.getByRole('button',{name:'素材',exact:true}).focus();await page.keyboard.press('Tab');await expect(nav.getByRole('button',{name:'文字',exact:true})).toBeFocused();await expect(tooltip).toHaveText('文字');
+  await page.keyboard.press('Enter');await expect(tooltip).toHaveCount(0);await expect(nav.getByRole('button',{name:'文字',exact:true})).toHaveAttribute('aria-pressed','true');
   await nav.getByRole('button',{name:'特效',exact:true}).click();await expect(page.locator('.fx-card')).toHaveCount(40);await expect(page.locator('.library-panel').getByLabel('特效品質',{exact:true})).toHaveCount(0);
   await expect(page.locator('.inspector').getByLabel('特效品質',{exact:true})).toBeVisible();await expect(page.locator('.inspector .fx-card')).toHaveCount(0);
   await page.getByRole('button',{name:'櫻花',exact:true}).hover();await expect(tooltip).toContainText('櫻花');await page.locator('.library-scroll').evaluate(el=>el.scrollTop=200);await expect(tooltip).toHaveCount(0);
