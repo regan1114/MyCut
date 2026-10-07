@@ -1,3 +1,43 @@
+MyCut 0.6.23 — Intel Mac 更新（2026-10-07）
+
+最新程式：0.6.23/mac/MyCut.app
+請先儲存專案、按 ⌘Q 完全結束 MyCut，再使用「啟動 MyCut.command」開啟新版。
+
+本次更新：
+  Mac 時間軸縮放改為 Command（⌘）＋滑鼠滾輪，左右 Command 鍵都可使用。
+  Mac 的 Option＋滾輪恢復一般捲動；Windows 仍使用 Alt＋滾輪。
+  右上方放大／縮小按鈕及滑桿保留，操作提示同步更新。
+
+驗證紀錄：
+  8 項滾輪縮放及相容性測試通過（Mac／Windows 瀏覽器平台模擬）。
+  TypeScript 檢查及正式建置通過。
+  Mac 0.6.23 封裝版事件測試、內容比對及簽章檢查通過。
+  Mac 封裝版驗證結果：../docs/timeline-wheel-desktop-test-result.json
+  自動測試使用鍵盤、滑鼠與事件重播。
+
+以下為歷史版本說明：
+
+MyCut 0.6.22 — Intel Mac 更新（2026-10-07）
+
+最新程式：0.6.22/mac/MyCut.app
+請先儲存專案、按 ⌘Q 完全結束 MyCut，再使用「啟動 MyCut.command」開啟新版。
+
+本次更新：
+  時間軸縮放會同時辨識鍵盤的 Option／Alt 狀態，補上滾輪事件缺少按鍵標記的情況。
+  按住 Option／Alt 時也接受橫向滾輪事件，避免滾輪轉換方向後無法縮放。
+  切換視窗時清除未結束的時間軸手勢，避免回到編輯器後縮放仍被擋住。
+  原有放大／縮小按鈕與滑桿保留，和滾輪共用同一個縮放設定。
+
+驗證紀錄：
+  8 項滾輪縮放及相容性測試通過（Mac／Windows 瀏覽器平台模擬）。
+  9 項既有時間軸拖曳、播放定位與取消手勢測試通過。
+  TypeScript 檢查及正式建置通過。
+  Mac 0.6.22 封裝版事件測試、內容比對及簽章檢查通過。
+  Mac 封裝版驗證結果：../docs/timeline-wheel-desktop-test-result.json
+  自動測試使用鍵盤、滑鼠與事件重播；使用者的實體滑鼠尚待新版操作確認。
+
+以下為歷史版本說明：
+
 MyCut 0.6.21 — Intel Mac 更新（2026-10-07）
 
 最新程式：0.6.21/mac/MyCut.app

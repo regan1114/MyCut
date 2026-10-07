@@ -1,10 +1,13 @@
 {
-  "version": "0.6.19",
-  "testedAt": "2026-10-07T10:08:57.082Z",
+  "version": "0.6.23",
+  "testedAt": "2026-10-07T13:10:29.976Z",
   "platform": "darwin",
   "arch": "x64",
   "packagedApp": true,
-  "leftAndRightOption": true,
+  "inputSource": "Playwright keyboard/mouse and DOM event replay; physical mouse not verified",
+  "zoomShortcut": "Command+wheel",
+  "leftAndRightModifier": true,
+  "alternateModifierDoesNotZoom": true,
   "clipArea": true,
   "ruler": true,
   "emptyTrack": true,
@@ -14,5 +17,10 @@
   "pointerTimePreserved": true,
   "ordinaryScrolling": true,
   "projectTimingUnchanged": true,
+  "toolbarAndClipWidthsSynchronized": true,
+  "missingWheelModifier": true,
+  "horizontalWheel": true,
+  "interruptedGestureRecovery": true,
+  "modifierClearedOnKeyupAndBlur": true,
   "errors": []
 }
