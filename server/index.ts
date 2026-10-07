@@ -62,6 +62,9 @@ export async function startServer(options:{root?:string;port?:number;appRoot?:st
   app.get('/api/projects',async(req,res)=>res.json(await projects.list(req.query.trash==='1')));
   app.post('/api/projects',async(req,res)=>res.status(201).json(await projects.create(req.body)));
   app.put('/api/projects/:id',async(req,res)=>{if(req.body.id!==id(req.params.id))throw new Error('專案 ID 不一致');const p=await projects.save(req.body);res.json({savedAt:p.updatedAt});});
+  app.get('/api/projects/:id/snapshots',async(req,res)=>res.json(await projects.snapshots.list(id(req.params.id))));
+  app.post('/api/projects/:id/snapshots',async(req,res)=>res.status(201).json(await projects.createSnapshot(id(req.params.id))));
+  app.post('/api/projects/:id/snapshots/:snapshotId/restore',async(req,res)=>res.status(201).json(await projects.restoreSnapshot(id(req.params.id),id(req.params.snapshotId))));
   app.get('/api/projects/:id',async(req,res)=>res.json(await projects.read(id(req.params.id))));
   app.post('/api/projects/:id/rename',async(req,res)=>res.json(await projects.rename(id(req.params.id),z.string().trim().min(1).max(120).parse(req.body.name))));
   app.post('/api/projects/:id/duplicate',async(req,res)=>res.json(await projects.duplicate(id(req.params.id))));

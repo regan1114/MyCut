@@ -3,10 +3,11 @@ const path=require('node:path');
 const fs=require('node:fs/promises');
 const {randomUUID}=require('node:crypto');
 const {pathToFileURL}=require('node:url');
+const {findNewerVersion,readRunningVersion,writeRunningVersion,instanceNotice}=require('./version.cjs');
 let service,win,origin,quitting=false,editorOpen=false;
 const isMac=process.platform==='darwin';
 const ownsLock=app.requestSingleInstanceLock();
-if(!ownsLock)app.quit();
+if(!ownsLock)app.whenReady().then(async()=>{const notice=instanceNotice(app.getVersion(),await readRunningVersion(app.getPath('userData')));if(notice)await dialog.showMessageBox(notice);app.quit();}).catch(()=>app.quit());
 app.on('second-instance',()=>{if(!origin)return;if(!win||win.isDestroyed())void makeWindow();else{if(win.isMinimized())win.restore();win.show();win.focus();}});
 async function makeWindow(){
   editorOpen=false;
@@ -19,10 +20,12 @@ async function makeWindow(){
   await win.loadURL(origin);
 }
 if(ownsLock)app.whenReady().then(async()=>{
+  await writeRunningVersion(app.getPath('userData'),app.getVersion());
   if(process.platform==='win32')app.setAppUserModelId('studio.mycut.desktop');
   const {startServer,safeFileName}=await import(pathToFileURL(path.join(app.getAppPath(),'dist-server/index.mjs')).href);
   service=await startServer({appRoot:app.getAppPath(),root:process.env.MYCUT_DATA_DIR??(app.isPackaged?path.join(app.getPath('userData'),'workspace'):path.join(app.getAppPath(),'.mycut')),port:0});origin=`http://127.0.0.1:${service.port}`;
   const handle=(name,fn)=>ipcMain.handle(name,async(event,...args)=>{if(new URL(event.senderFrame.url).origin!==origin)throw new Error('來源不符');return fn(...args);});
+  handle('mycut:app-info',async()=>{const info={version:app.getVersion(),platform:process.platform,arch:process.arch,packaged:app.isPackaged,appPath:app.getAppPath()};return {...info,newerVersion:await findNewerVersion({...info,executable:process.execPath})};});
   handle('mycut:editor-state',active=>{if(typeof active!=='boolean')throw new Error('無效的編輯狀態');editorOpen=active;});
   handle('mycut:import',async()=>{const result=await dialog.showOpenDialog(win,{properties:['openFile','multiSelections'],filters:[{name:'媒體檔案',extensions:['mp4','mov','mkv','webm','m4v','avi','mp3','wav','m4a','aac','flac','ogg','png','jpg','jpeg','webp']}]});const errors=[],imported=[];for(const file of result.filePaths){try{const m=await service.library.import(file);imported.push(m.id);}catch(e){errors.push(`${path.basename(file)}：${e.message}`);}}return {media:service.library.list(),errors,imported};});
   handle('mycut:open-project',async()=>{const result=await dialog.showOpenDialog(win,{properties:['openFile'],filters:[{name:'MyCut 專案',extensions:['json','mycut','mycutpack']}]});if(result.canceled||!result.filePaths[0])return null;if(path.extname(result.filePaths[0]).toLowerCase()==='.mycutpack')return service.portable.import(result.filePaths[0]);const p=JSON.parse(await fs.readFile(result.filePaths[0],'utf8'));return service.projects.save({...p,id:randomUUID(),name:String(p.name||'匯入專案').slice(0,110)+' · 匯入'});});
