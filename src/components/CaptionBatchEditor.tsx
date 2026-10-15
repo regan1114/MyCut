@@ -7,7 +7,7 @@ type Props={project:Project;selected:string[];fonts:FontInfo[];defaultFontId:str
 export default function CaptionBatchEditor({project,selected,fonts,defaultFontId,onApply,onClose,onSeek}:Props){
   const [draft,setDraft]=useState(project),[scope,setScope]=useState('captions'),[query,setQuery]=useState(''),[page,setPage]=useState(0),[error,setError]=useState('');
   const [options,setOptions]=useState<CaptionBatchOptions>({find:'',replace:'',punctuation:'keep',lineLength:0});
-  const [useStyle,setUseStyle]=useState(false),[style,setStyle]=useState({fontId:defaultFontId,fontSize:56,color:'#ffffff'});
+  const [useStyle,setUseStyle]=useState(false),[style,setStyle]=useState({fontId:defaultFontId,fontSize:70,color:'#ffffff'});
   const [excluded,setExcluded]=useState<Set<string>>(new Set());
   const track=project.clips.find(c=>c.id===selected.at(-1))?.trackId;
   const rows=draft.clips.filter(c=>c.kind==='text'&&(scope==='all'||scope==='captions'&&(c.captionType||c.captionJobId)||scope==='selected'&&selected.includes(c.id)||scope==='track'&&c.trackId===track)).sort((a,b)=>a.start-b.start);

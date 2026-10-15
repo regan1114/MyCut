@@ -28,6 +28,7 @@ export function drawTextFrame(ctx:CanvasRenderingContext2D,c:Clip,W:number,H:num
   let lineOffset=0;
   for(let i=0;i<lines.length;i++){
     const line=lines[i],x=(W-ctx.measureText(line).width)/2,y=top+i*lineHeight+size*.35;
+    if(c.textOutline>0){ctx.strokeStyle='#000000';ctx.lineWidth=c.textOutline*2*W/projectWidth;ctx.lineJoin='round';ctx.strokeText(line,x,y);}
     ctx.fillStyle=c.color;ctx.fillText(line,x,y);
     if(timed)for(const span of spans){const from=Math.max(0,span.from-lineOffset),to=Math.min(line.length,span.to-lineOffset);if(to<=from||span.progress<=0)continue;
       const left=ctx.measureText(line.slice(0,from)).width,right=ctx.measureText(line.slice(0,to)).width;

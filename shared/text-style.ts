@@ -1,6 +1,6 @@
 import type { Clip, Project, TextStyle } from './model';
 
-export const textStyleKeys = ['fontId','fontSize','color','x','y','scale','rotation','opacity','flipX','flipY','fit','crop'] as const;
+export const textStyleKeys = ['fontId','fontSize','color','textOutline','x','y','scale','rotation','opacity','flipX','flipY','fit','crop'] as const;
 
 /** Cue text and word timing belong to the clip; appearance belongs to its track. */
 export function textStylePatch(clip:Clip,fields:Partial<Clip>):TextStyle {

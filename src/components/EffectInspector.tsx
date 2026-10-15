@@ -1,16 +1,18 @@
+import ClipPresetPicker from './ClipPresetPicker';
+import { clipSettings, type ClipPreset, type ClipPresetInput } from '../../shared/clip-presets';
 import { Diamond, Sparkles } from 'lucide-react';
 import { clamp, evaluateClip, type Clip, type Media, type Project } from '../../shared/model';
 import { patchLinkedClip } from '../../shared/editing';
 import { effectCatalog } from '../../shared/effects';
 import { EffectControls } from './EffectsPanel';
 
-type Props={project:Project;media:Media[];clip:Clip;frame:number;update:(fn:(p:Project)=>Project,history?:boolean)=>void;checkpoint:()=>void;onError:(e:unknown)=>void;onSeek:(frame:number)=>void};
-export default function EffectInspector({project,media,clip:c,frame,update,checkpoint,onError,onSeek}:Props){
+type Props={presets:ClipPreset[];presetSaving:boolean;onRecordPreset:(input:ClipPresetInput)=>void;project:Project;media:Media[];clip:Clip;frame:number;update:(fn:(p:Project)=>Project,history?:boolean)=>void;checkpoint:()=>void;onError:(e:unknown)=>void;onSeek:(frame:number)=>void};
+export default function EffectInspector({presets,presetSaving,onRecordPreset,project,media,clip:c,frame,update,checkpoint,onError,onSeek}:Props){
   const relative=clamp(frame-c.start,0,c.duration-1),state=evaluateClip(c,relative);
-  const patch=(fields:Partial<Clip>,history=true)=>{try{update(p=>patchLinkedClip(p,c.id,fields,media),history);}catch(e){onError(e);}};
+  const patch=(fields:Partial<Clip>,history=true)=>{try{let edited:Clip|undefined;update(p=>{const next=patchLinkedClip(p,c.id,fields,media);edited=next.clips.find(x=>x.id===c.id);return next;},history);if(edited&&JSON.stringify(clipSettings(c))!==JSON.stringify(clipSettings(edited)))onRecordPreset({projectId:project.id,clip:edited,fps:project.fps});}catch(e){onError(e);}};
   const key={frame:relative,...state};
   return <aside className="inspector"><div className="panel-header"><span>特效片段</span><Sparkles size={15}/></div><div className="inspector-scroll">
-    <div className="clip-heading"><input aria-label="特效片段名稱" value={c.name} onChange={e=>patch({name:e.target.value})}/></div>
+    <ClipPresetPicker key={c.id} clip={c} fps={project.fps} presets={presets} saving={presetSaving} onApply={fields=>patch(fields)}/><div className="clip-heading"><input aria-label="特效片段名稱" value={c.name} onChange={e=>patch({name:e.target.value})}/></div>
     <p className="field-note">{c.effects!.enabled.map(id=>effectCatalog.find(e=>e.id===id)?.name).join('、')} · 僅在片段時間內作用於合成畫面，包含字幕。</p>
     <section className="property-section"><h4>特效時間</h4><div className="number-pair"><label>開始（秒）<input aria-label="特效開始秒數" type="number" min={0} step={1/project.fps} value={Number((c.start/project.fps).toFixed(3))} onChange={e=>patch({start:Math.max(0,Math.round(+e.target.value*project.fps))})}/></label><label>長度（秒）<input aria-label="特效長度秒數" type="number" min={1/project.fps} step={1/project.fps} value={Number((c.duration/project.fps).toFixed(3))} onChange={e=>patch({duration:Math.max(1,Math.round(+e.target.value*project.fps))})}/></label></div>
       {(['fadeIn','fadeOut'] as const).map((name,i)=><label className="slider-field" key={name}><span>{i?'特效淡出':'特效淡入'}<output>{(c[name]/project.fps).toFixed(1)} s</output></span><input aria-label={i?'特效淡出':'特效淡入'} type="range" min={0} max={c.duration/project.fps} step={.1} value={c[name]/project.fps} onChange={e=>patch({[name]:Math.round(+e.target.value*project.fps)})}/></label>)}

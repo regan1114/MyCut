@@ -22,7 +22,7 @@ export function applyCaptions(p:Project,job:CaptionJob,cues:Cue[],media:Media[],
   const legacyByTime=new Map<number,typeof previous>();for(const c of previous)if(!c.captionCueId)legacyByTime.set(c.start,[...(legacyByTime.get(c.start)??[]),c]);
   const clips=cues.map(c=>{
     const prior=byCue.get(c.id)??legacyByTime.get(c.start)?.shift();
-    return makeClip({kind:'text',trackId:prior?.trackId??trackId,start:c.start,duration:c.duration,text:c.text,name:c.text.trim().slice(0,30),fontId,fontSize:56,y:.35,captionJobId:job.id,captionCueId:c.id,captionType:job.options.mode,karaoke:{...defaultKaraoke(),enabled:!!job.options.karaoke&&validWordTiming(c.text,c.words??[]),source:job.alignment?'alignment':'whisper',words:validWordTiming(c.text,c.words??[])?c.words!:[]}});
+    return makeClip({kind:'text',trackId:prior?.trackId??trackId,start:c.start,duration:c.duration,text:c.text,name:c.text.trim().slice(0,30),fontId,y:.35,captionJobId:job.id,captionCueId:c.id,captionType:job.options.mode,karaoke:{...defaultKaraoke(),enabled:!!job.options.karaoke&&validWordTiming(c.text,c.words??[]),source:job.alignment?'alignment':'whisper',words:validWordTiming(c.text,c.words??[])?c.words!:[]}});
   });
   const remaining=p.clips.filter(c=>c.captionJobId!==job.id);const retained=p.tracks.filter(t=>t.id===trackId||t.textStyle||t.manualTextLane||t.hidden||t.muted||t.locked||!oldTrackIds.has(t.id)||remaining.some(c=>c.trackId===t.id)||clips.some(c=>c.trackId===t.id));
   const result=insertTimedClips({...p,tracks:track?retained:[{id:trackId,name,kind:'text' as const,muted:false,hidden:false,locked:false},...p.tracks],clips:remaining},clips);if(result.clips.length>20000)throw new Error('專案片段數超過 20,000');return result;
