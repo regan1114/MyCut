@@ -1,6 +1,6 @@
 import { projectWithOverlay } from '../fixtures/project';
 import { test, expect, type Page } from '@playwright/test';
-import { makeClip, type Project } from '../../shared/model';
+import { makeClip, uid, type Project } from '../../shared/model';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
@@ -61,7 +61,7 @@ test('audio actions live on left, clip properties on right, and keyframes use on
     const upload = await page.request.post('/api/media/upload', { headers: { 'X-MyCut': '1' }, multipart: { file: { name: '有聲影片.mp4', mimeType: 'video/mp4', buffer: await fs.readFile(file) } } });
     expect(upload.ok()).toBeTruthy(); const media = await upload.json();
     const p = projectWithOverlay(); p.name = '左右音訊分工';
-    p.clips = [makeClip({ kind: 'video', trackId: 'main', mediaId: media.imported[0], start: 0, duration: 60, name: '有聲影片' }), makeClip({ kind: 'shape', trackId: 'overlay', start: 0, duration: 60, name: '圖形' })];
+    p.clips = [makeClip({ kind: 'video', trackId: 'main', mediaId: media.imported[0], start: 0, duration: 60, name: '有聲影片', groupId: uid() }), makeClip({ kind: 'shape', trackId: 'overlay', start: 0, duration: 60, name: '圖形' })];
     await open(page, p);
     const left = page.locator('.library-panel'), right = page.locator('.inspector');
     await page.getByRole('navigation').getByRole('button', { name: '素材', exact: true }).click();
@@ -73,10 +73,16 @@ test('audio actions live on left, clip properties on right, and keyframes use on
     await left.getByRole('button', { name: '分離音訊', exact: true }).click();
     await expect(page.locator('.clip-audio')).toHaveCount(1);
     let result = await saved(page, p); const video = result.clips.find(c => c.kind === 'video')!, audio = result.clips.find(c => c.kind === 'audio')!;
-    expect(video.volume).toBe(0); expect(audio.volume).toBe(1); expect(video.linkId).toBe(audio.linkId); expect(video.linkId).toBeTruthy();
+    expect(video.volume).toBe(0); expect(audio.volume).toBe(1); expect(video.linkId).toBeUndefined(); expect(audio.linkId).toBeUndefined(); expect(audio.groupId).toBeUndefined(); expect(video.groupId).toBe(p.clips[0].groupId);
     await right.getByRole('button', { name: '基本', exact: true }).click(); await expect(right.getByLabel('音量', { exact: true })).toHaveCount(0);
+    await right.getByLabel('開始秒數', { exact: true }).fill('1');
+    await right.getByLabel('片段長度', { exact: true }).fill('1');
+    result = await saved(page, p); expect(result.clips.find(c => c.id === audio.id)!.start).toBe(30); expect(result.clips.find(c => c.id === audio.id)!.duration).toBe(30); expect(result.clips.find(c => c.id === video.id)).toEqual(video);
     await right.getByRole('button', { name: '音訊', exact: true }).click(); await expect(right.getByLabel('音量', { exact: true })).toHaveCount(1);
-    await page.getByRole('button', { name: /^復原（/ }).click(); await expect(page.locator('.clip-audio')).toHaveCount(0);
+    await page.getByRole('button', { name: '刪除（Delete）', exact: true }).click(); await expect(page.locator('.clip-audio')).toHaveCount(0); await expect(page.locator('.clip-video')).toHaveCount(1);
+    result = await saved(page, p); expect(result.clips.find(c => c.id === video.id)).toEqual(video);
+    await page.getByRole('button', { name: /^復原（/ }).click(); await expect(page.locator('.clip-audio')).toHaveCount(1);
+    for (let i = 0; i < 3; i++) await page.getByRole('button', { name: /^復原（/ }).click(); await expect(page.locator('.clip-audio')).toHaveCount(0);
     await page.locator('.clip-shape').click(); await expect(right.getByRole('button', { name: '音訊', exact: true })).toHaveCount(0);
     await right.getByRole('button', { name: '動畫', exact: true }).click(); await expect(right.getByLabel('縮放', { exact: true })).toHaveCount(0);
     await right.getByRole('button', { name: '新增關鍵影格', exact: true }).click();
