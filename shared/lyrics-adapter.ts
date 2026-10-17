@@ -4,7 +4,7 @@ import { validWordTiming } from './karaoke';
 import { endFrame, makeClip, ProjectSchema, uid, type Project, type Media } from './model';
 import { insertTimedClips, primaryTextTrack } from './placement';
 
-const sunoSectionHeader = /^\s*\[(?:intro|verse|pre[- ]chorus|chorus|post[- ]chorus|bridge|hook|refrain|outro|instrumental|interlude|break|solo|drop)(?:\s*(?:\d+|[ivx]+))?(?:\s*[:,-–—][^\]]*)?\]\s*$/i;
+const sunoSectionHeader = /^\s*\[(?:intro|verse|pre[- ]chorus|chorus|final[- ]chorus|post[- ]chorus|bridge|hook|refrain|outro|instrumental|interlude|break|solo|drop)(?:\s*(?:\d+|[ivx]+))?(?:\s*[:,-–—][^\]]*)?\]\s*$/i;
 
 /** Keep sung words intact while excluding standalone Suno structure labels from alignment. */
 export function prepareAlignmentLyrics(source: string): {

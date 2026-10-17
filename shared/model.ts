@@ -61,7 +61,7 @@ export type Keyframe = z.infer<typeof KeyframeSchema>;
 export type Media = { id:string; name:string; kind:'video'|'audio'|'image'; duration:number; width:number; height:number; size:number; hasAudio:boolean; thumbnail?:string; proxy?:string; proxyStatus?:'queued'|'processing'|'ready'|'error'; waveform?:number[]; missing?:boolean; revision?:number };
 export type ExportSettings = { resolution:720|1080|2160; quality:'standard'|'high'; encoder:'libx264'|'h264_videotoolbox' };
 export type ExportJob = { id:string; name:string; status:'queued'|'running'|'paused'|'failed'|'completed'; progress:number; completedSegments:number; totalSegments:number; duration:number; createdAt:string; error?:string; output?:string; settings:ExportSettings };
-export type FontInfo = { id:string; family:string; label:string; language:'繁體中文'|'Latin'|'自訂'; category:string; file:string; license:string; source:string; custom?:boolean };
+export type FontInfo = { id:string; family:string; label:string; language:'繁體中文'|'Latin'|'自訂'; category:string; file:string; license:string; source:string; custom?:boolean; missing?:boolean };
 
 export function newProject(): Project { return {version:1,id:uid(),name:projectDateName(),width:1920,height:1080,fps:30,background:'#101418',tracks:[
   {id:'text',name:'文字與字幕',kind:'text',muted:false,hidden:false,locked:false},

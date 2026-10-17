@@ -9,19 +9,21 @@ import { ProjectSchema, type Project } from '../shared/model';
 import { projectMediaIds } from '../shared/project-media';
 import { Library, type MediaRecord } from './library';
 import type { Projects } from './projects';
+import type { CustomFonts } from './custom-fonts';
 
 // Sequential, uncompressed container: magic + uint32 header size + JSON header + its SHA-256,
 // followed by each original's exact bytes and 32-byte SHA-256. No archive paths,
 // external commands, 32-bit file offsets, or complete media buffers are needed.
 const MAGIC=Buffer.from('MYCUTPACK\x00\x01\n');
 const MAX_HEADER=16*1024*1024;
-const HeaderSchema=z.object({format:z.literal('mycutpack'),version:z.literal(1),project:ProjectSchema,media:z.array(z.object({id:z.string().uuid(),name:z.string().max(300),bytes:z.number().int().positive().max(1024**4)})).max(20000)});
+const HeaderSchema=z.object({format:z.literal('mycutpack'),version:z.union([z.literal(1),z.literal(2)]),project:ProjectSchema,media:z.array(z.object({id:z.string().uuid(),name:z.string().max(300),bytes:z.number().int().positive().max(1024**4)})).max(20000),fonts:z.array(z.object({id:z.string().regex(/^custom-[a-f0-9]{64}$/),label:z.string().min(1).max(100),extension:z.enum(['.ttf','.otf']),bytes:z.number().int().positive().max(32*1024**2)})).max(200).default([])}).refine(h=>h.version===2||h.fonts.length===0,'舊版專案包不能包含字型資料');
+const customFontIds=(p:Project)=>[...new Set([...p.clips.filter(c=>c.kind==='text').map(c=>c.fontId),...p.tracks.flatMap(t=>t.textStyle?.fontId?[t.textStyle.fontId]:[])].filter(id=>id.startsWith('custom-')))];
 export type PortableStatus={running:boolean;kind:'export'|'import';progress:number;message:string;error?:string};
 
 export class PortableProjects {
   status:PortableStatus={running:false,kind:'export',progress:0,message:''};
   private controller?:AbortController;
-  constructor(private library:Library,private projects:Projects){}
+  constructor(private library:Library,private projects:Projects,private customFonts?:CustomFonts){}
   get isRunning(){return this.status.running;}
   cancel(){this.controller?.abort();}
   private async operation<T>(kind:'export'|'import',task:(signal:AbortSignal)=>Promise<T>):Promise<T>{
@@ -34,10 +36,13 @@ export class PortableProjects {
   private async space(dir:string,bytes:number){const st=await fs.statfs(dir);if(st.bavail*st.bsize<bytes+64*1024**2)throw new Error(`磁碟空間不足，需約 ${(bytes/1024**3).toFixed(2)} GB 加上暫存空間。`);}
   async export(value:Project,destination:string){return this.operation('export',async signal=>{
     const project=ProjectSchema.parse(value),records=projectMediaIds(project).map(id=>this.library.get(id));
-    const sources=await Promise.all(records.map(async m=>{const st=await fs.stat(m.path).catch(()=>null);if(!st?.isFile())throw new Error(`找不到素材「${m.name}」，請先重新連結。`);return {record:m,size:st.size,mtime:st.mtimeMs};}));
-    const header=Buffer.from(JSON.stringify(HeaderSchema.parse({format:'mycutpack',version:1,project,media:sources.map(s=>({id:s.record.id,name:s.record.name,bytes:s.size}))})));if(header.length>MAX_HEADER)throw new Error('專案設定超過 16 MB，無法打包。');
+    const mediaSources=await Promise.all(records.map(async m=>{const st=await fs.stat(m.path).catch(()=>null);if(!st?.isFile())throw new Error(`找不到素材「${m.name}」，請先重新連結。`);return {record:m,size:st.size,mtime:st.mtimeMs};}));
+    const fontEntries=customFontIds(project).map(id=>{if(!this.customFonts)throw new Error('無法打包自訂字型，請更新程式。');return this.customFonts.packageEntry(id);});
+    const fontSources=await Promise.all(fontEntries.map(async f=>{const st=await fs.stat(f.file).catch(()=>null);if(!st?.isFile()||st.size>32*1024**2)throw new Error(`請先重新匯入自訂字型：${f.label}`);const hash=createHash('sha256').update(await fs.readFile(f.file)).digest('hex');if(`custom-${hash}`!==f.id)throw new Error(`請先重新匯入自訂字型：${f.label}`);return {record:{path:f.file,name:f.label+f.extension,id:f.id},size:st.size,mtime:st.mtimeMs};}));
+    const sources=[...mediaSources,...fontSources];
+    const header=Buffer.from(JSON.stringify(HeaderSchema.parse({format:'mycutpack',version:fontEntries.length?2:1,project,media:mediaSources.map(s=>({id:s.record.id,name:s.record.name,bytes:s.size})),fonts:fontEntries.map((f,i)=>({id:f.id,label:f.label,extension:f.extension,bytes:fontSources[i].size}))})));if(header.length>MAX_HEADER)throw new Error('專案設定超過 16 MB，無法打包。');
     const targetReal=await fs.realpath(destination).catch(()=>path.resolve(destination));
-    if((await Promise.all(records.map(m=>fs.realpath(m.path)))).includes(targetReal))throw new Error('專案包不能覆蓋原始素材。');
+    if((await Promise.all(sources.map(s=>fs.realpath(s.record.path)))).includes(targetReal))throw new Error('專案包不能覆蓋原始素材。');
     const size=Buffer.alloc(4);size.writeUInt32BE(header.length);const total=sources.reduce((n,s)=>n+s.size,0);await this.space(path.dirname(destination),total+header.length+(sources.length+1)*32+MAGIC.length+4);
     const temporary=`${destination}.${randomUUID()}.partial`;let done=0;
     try{
@@ -63,20 +68,24 @@ export class PortableProjects {
       const headerHash=Buffer.alloc(32);if((await file.read(headerHash,0,32,prefix.length+length)).bytesRead!==32||!createHash('sha256').update(data).digest().equals(headerHash))throw new Error('專案設定校驗失敗，請重新複製專案包。');
       const header=HeaderSchema.parse(JSON.parse(data.toString('utf8'))),ids=new Set(header.media.map(m=>m.id));
       if(ids.size!==header.media.length||projectMediaIds(header.project).some(id=>!ids.has(id)))throw new Error('專案包的素材清單不完整或有重複 ID。');
-      let offset=prefix.length+length+32;const total=header.media.reduce((sum,m)=>sum+m.bytes,0);
-      if(offset+total+header.media.length*32!==st.size)throw new Error('專案包長度不符，檔案可能損壞或尚未複製完成。');
+      const fontIds=new Set(header.fonts.map(f=>f.id));if(fontIds.size!==header.fonts.length||header.version===2&&customFontIds(header.project).some(id=>!fontIds.has(id)))throw new Error('專案包的自訂字型清單不完整或有重複 ID。');
+      if(header.fonts.length&&!this.customFonts)throw new Error('此專案包含自訂字型，請更新程式後匯入。');
+      const items=[...header.media,...header.fonts];
+      let offset=prefix.length+length+32;const total=items.reduce((sum,m)=>sum+m.bytes,0);
+      if(offset+total+items.length*32!==st.size)throw new Error('專案包長度不符，檔案可能損壞或尚未複製完成。');
       await this.space(this.library.root,total);signal.throwIfAborted();directory=path.join(this.library.root,'media',`package-${randomUUID()}`);await fs.mkdir(directory,{recursive:true});
-      let done=0;const files:{file:string;name:string;oldId:string}[]=[];
-      for(const m of header.media){signal.throwIfAborted();this.status.message=`正在還原：${m.name}`;
-        const extension=path.extname(m.name).replace(/[^a-zA-Z0-9.]/g,'').slice(0,12),target=path.join(directory,`${randomUUID()}${extension}`),hash=createHash('sha256');
+      let done=0;const files:{file:string;name:string;oldId:string}[]=[],fontFiles:{file:string;label:string;extension:string;id:string}[]=[];
+      for(const m of items){signal.throwIfAborted();const isFont='extension' in m,name=isFont?m.label+m.extension:m.name;this.status.message=`正在還原：${name}`;
+        const extension=path.extname(name).replace(/[^a-zA-Z0-9.]/g,'').slice(0,12),target=path.join(directory,`${randomUUID()}${extension}`),hash=createHash('sha256');
         const meter=new Transform({transform:(chunk:Buffer,_encoding,callback)=>{hash.update(chunk);done+=chunk.length;this.status.progress=done/Math.max(1,total)*.85;callback(null,chunk);}});
         await pipeline(createReadStream(source,{start:offset,end:offset+m.bytes-1,highWaterMark:1024*1024}),meter,createWriteStream(target,{flags:'wx'}),{signal});offset+=m.bytes;
-        const expected=Buffer.alloc(32);if((await file.read(expected,0,32,offset)).bytesRead!==32||!hash.digest().equals(expected))throw new Error(`素材「${m.name}」校驗失敗，請重新複製專案包。`);offset+=32;files.push({file:target,name:m.name,oldId:m.id});
+        const expected=Buffer.alloc(32);if((await file.read(expected,0,32,offset)).bytesRead!==32||!hash.digest().equals(expected))throw new Error(`檔案「${name}」校驗失敗，請重新複製專案包。`);offset+=32;if(isFont){if(`custom-${expected.toString('hex')}`!==m.id)throw new Error(`字型「${m.label}」識別碼不符。`);fontFiles.push({file:target,label:m.label,extension:m.extension,id:m.id});}else files.push({file:target,name:m.name,oldId:m.id});
       }
       const mapping=new Map<string,string>();
       for(const [i,item] of files.entries()){signal.throwIfAborted();this.status.message=`正在建立素材庫：${item.name}`;const record=await this.library.prepare(item.file,true,item.name);prepared.push(record);mapping.set(item.oldId,record.id);this.status.progress=.85+(i+1)/Math.max(1,files.length)*.14;}
       const after=await file.stat();if(after.size!==st.size||after.mtimeMs!==st.mtimeMs)throw new Error('專案包在匯入期間變更，請重試。');
       const project=ProjectSchema.parse({...header.project,id:randomUUID(),name:(header.project.name+' · 還原').slice(0,120),mediaIds:header.media.map(m=>mapping.get(m.id)!),clips:header.project.clips.map(c=>({...c,mediaId:c.mediaId?mapping.get(c.mediaId):undefined}))});
+      for(const font of fontFiles){signal.throwIfAborted();const imported=await this.customFonts!.import(await fs.readFile(font.file),font.label+font.extension,font.label);if(imported.id!==font.id)throw new Error('自訂字型識別碼不符。');await fs.rm(font.file);}
       signal.throwIfAborted();this.status.message='正在儲存還原的專案…';await this.library.addPrepared(prepared);registered=true;
       const saved=await this.projects.save(project);committed=true;this.library.derive(prepared);return saved;
     }finally{

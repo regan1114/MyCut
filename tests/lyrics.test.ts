@@ -158,6 +158,13 @@ test('Suno section labels are omitted from alignment while sung text remains unc
   assert.equal(prepared.skippedSectionMarkers, 4);
   assert.deepEqual(prepareAlignmentLyrics('[Verse 2]\n[Chorus]').lyrics, '');
 });
+test('Final Chorus labels are omitted without changing sung words', () => {
+  const prepared = prepareAlignmentLyrics(
+    '[Final Chorus]\n月滿天邊\n  [final chorus]  \n[Final-Chorus 2: all vocals]\n[Final words]\n唱出 [Final Chorus]',
+  );
+  assert.equal(prepared.lyrics, '月滿天邊\n[Final words]\n唱出 [Final Chorus]');
+  assert.equal(prepared.skippedSectionMarkers, 3);
+});
 test('split and merge keep editable sentences, never repeat the full original text', () => {
   const project = newProject();
   const job = alignmentCaptionJob(project, [], crypto.randomUUID());

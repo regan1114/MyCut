@@ -27,7 +27,7 @@ import { Resvg } from '@resvg/resvg-js';
 export async function startServer(options:{root?:string;port?:number;appRoot?:string}={}){
   const appRoot=options.appRoot??process.cwd();const root=options.root??path.join(appRoot,'.mycut');
   const fontRoot=unpackedPath(path.join(appRoot,'public/fonts'));const fonts:FontInfo[]=JSON.parse(await fs.readFile(path.join(fontRoot,'manifest.json'),'utf8'));
-  await fs.mkdir(path.join(root,'projects'),{recursive:true});const customFonts=new CustomFonts(root,fonts);await customFonts.init();const library=new Library(root);await library.init();const jobs=new Jobs(path.join(root,'exports'),library,fonts,fontRoot);await jobs.init();const projects=new Projects(root,library);const portable=new PortableProjects(library,projects);const speech=new SpeechJobs(path.join(root,'captions'),library,appRoot);await speech.init();
+  await fs.mkdir(path.join(root,'projects'),{recursive:true});const customFonts=new CustomFonts(root,fonts);await customFonts.init();const library=new Library(root);await library.init();const jobs=new Jobs(path.join(root,'exports'),library,fonts,fontRoot);await jobs.init();const projects=new Projects(root,library);const portable=new PortableProjects(library,projects,customFonts);const speech=new SpeechJobs(path.join(root,'captions'),library,appRoot);await speech.init();
   const lyrics=new LyricsBridge(path.join(root,'lyrics'),library,appRoot);
   const rhythmControllers=new Set<AbortController>();
   const preferences=new Preferences(root,fonts);await preferences.init();
