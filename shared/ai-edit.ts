@@ -1,7 +1,8 @@
 import {z} from 'zod';
 import {makeClip,splitClip,uid,ProjectSchema,type Project,type Clip,type Media} from './model';
 import {appendClips} from './placement';
-export const AiConfigSchema=z.object({mode:z.enum(['api','cli']),endpoint:z.string().max(2000).default(''),model:z.string().max(200).default(''),apiKey:z.string().max(4000).default(''),executable:z.string().max(2000).default(''),args:z.array(z.string().max(8000)).max(40).default([])});
+export const AiConfigSchema=z.object({mode:z.enum(['api','cli']),preset:z.enum(['codex','claude','gemini']).optional(),endpoint:z.string().max(2000).default(''),model:z.string().max(200).default(''),apiKey:z.string().max(4000).default(''),executable:z.string().max(2000).default(''),args:z.array(z.string().max(8000)).max(40).default([])});
+export type AiCliPreset={provider:'codex'|'claude'|'gemini';name:string;found:boolean;executable:string;args:string[]};
 export type AiConfig=z.infer<typeof AiConfigSchema>;
 export const AiPlanSchema=z.object({segments:z.array(z.object({start:z.number().finite().min(0),end:z.number().finite().positive(),reason:z.string().max(500).default('')})).min(1).max(20)});
 export type AiPlan=z.infer<typeof AiPlanSchema>;

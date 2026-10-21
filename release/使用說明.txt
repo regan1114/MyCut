@@ -1,3 +1,15 @@
+Reelume 0.6.41
+簡化 AI 連線：Codex、Claude Code、Gemini CLI 自動偵測並帶入參數；保留進階自訂 CLI 與 API 設定，改善登入與版本錯誤提示。
+Intel Mac：0.6.41/mac/Reelume.app
+
+Reelume 0.6.40
+新增時間軸右鍵「匯出選取區塊」，支援影片 MP4、圖片 PNG、聲音 WAV；多選各自輸出、不套用剪輯效果，並支援取消。
+Intel Mac：0.6.40/mac/Reelume.app
+
+Reelume 0.6.39
+放大各視窗關閉按鈕與匯出暫停、繼續、取消及儲存操作；按鈕至少 44px 高，窄欄位自動換行。
+Intel Mac：0.6.39/mac/Reelume.app
+
 Reelume 0.6.38
 修正專案管理的備份副檔名提示、瀏覽器專案匯入篩選及匯出中間檔名稱。
 README 補充 AI 剪輯 API／CLI、Logo、人聲分離、暫存管理與舊資料相容說明。

@@ -1,6 +1,6 @@
 {
   "name": "reelume",
-  "version": "0.6.38",
+  "version": "0.6.41",
   "private": true,
   "type": "module",
   "description": "Reelume — 本機多軌影片剪輯器",

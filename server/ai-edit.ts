@@ -7,6 +7,12 @@ import {AiConfigSchema,parsePlan,type AiConfig} from '../shared/ai-edit';
 import type {Library} from './library';
 import {ffmpeg} from './native';
 const Request=z.object({id:z.string().uuid(),mediaId:z.string().uuid(),from:z.number().finite().min(0),to:z.number().finite().positive(),instruction:z.string().trim().min(1).max(4000),config:AiConfigSchema});
+export function cliFailure(code:number|null,stderr:string){
+ if(/requires a newer version of Codex/i.test(stderr))return 'Codex 版本太舊，請更新目前使用的 Codex CLI，再按「重新偵測」及「測試連線」。';
+ if(/not logged in|login required|please log in|authentication required|unauthorized|\b401\b/i.test(stderr))return 'AI 工具尚未登入或登入已失效，請先在終端機完成登入，再測試連線。';
+ if(/Library not loaded|env:.*node.*No such file/i.test(stderr))return 'AI 工具的 Node 或執行環境無法啟動，請重新偵測，或在進階設定指定可用的 Node 與工具入口。';
+ return `CLI 結束代碼 ${code}，請先在終端機確認登入與參數設定。`;
+}
 export class AiEditor{
  private controllers=new Map<string,AbortController>();
  constructor(private library:Library){}
@@ -21,7 +27,7 @@ export class AiEditor{
   }
   if(!path.isAbsolute(config.executable)||/\.(cmd|bat)$/i.test(config.executable))throw new Error('請指定完整執行檔路徑；Windows 的 npm CLI 請使用 node.exe 與腳本參數');
   const cliPrompt=prompt+'\n可讀取的本機抽樣圖片：'+JSON.stringify(frames);const hasPrompt=config.args.some(a=>a.includes('{prompt}'));const args=config.args.map(a=>a.replaceAll('{prompt}',cliPrompt));
-  return new Promise<string>((resolve,reject)=>{signal.throwIfAborted();const child=spawn(config.executable,args,{shell:false,detached:process.platform!=='win32',windowsHide:true,stdio:['pipe','pipe','pipe']});let output='',failed:Error|undefined;const kill=()=>{if(!child.pid)return;try{if(process.platform==='win32'){const killer=spawn('taskkill.exe',['/PID',String(child.pid),'/T','/F'],{windowsHide:true,stdio:'ignore'});killer.on('error',()=>child.kill());}else process.kill(-child.pid,'SIGKILL');}catch{child.kill('SIGKILL');}};const abort=()=>{failed=new Error('AI 剪輯已取消或逾時');kill();};signal.addEventListener('abort',abort,{once:true});child.stdout.on('data',b=>{output+=b.toString();if(output.length>1_000_000){failed=new Error('CLI 回應過大');kill();}});child.stderr.resume();child.stdin.on('error',()=>{});child.on('error',e=>{signal.removeEventListener('abort',abort);reject(e);});child.on('close',code=>{signal.removeEventListener('abort',abort);if(failed)reject(failed);else if(code!==0)reject(new Error(`CLI 結束代碼 ${code}，請先在終端機確認登入與參數設定。`));else resolve(output);});child.stdin.end(hasPrompt?'':cliPrompt);});
+  return new Promise<string>((resolve,reject)=>{signal.throwIfAborted();const child=spawn(config.executable,args,{shell:false,detached:process.platform!=='win32',windowsHide:true,stdio:['pipe','pipe','pipe']});let output='',stderr='',failed:Error|undefined;const kill=()=>{if(!child.pid)return;try{if(process.platform==='win32'){const killer=spawn('taskkill.exe',['/PID',String(child.pid),'/T','/F'],{windowsHide:true,stdio:'ignore'});killer.on('error',()=>child.kill());}else process.kill(-child.pid,'SIGKILL');}catch{child.kill('SIGKILL');}};const abort=()=>{failed=new Error('AI 剪輯已取消或逾時');kill();};signal.addEventListener('abort',abort,{once:true});child.stdout.on('data',b=>{output+=b.toString();if(output.length>1_000_000){failed=new Error('CLI 回應過大');kill();}});child.stderr.on('data',b=>{stderr=(stderr+b.toString()).slice(-16000);});child.stdin.on('error',()=>{});child.on('error',e=>{signal.removeEventListener('abort',abort);reject(e);});child.on('close',code=>{signal.removeEventListener('abort',abort);if(failed)reject(failed);else if(code!==0)reject(new Error(cliFailure(code,stderr)));else resolve(output);});child.stdin.end(hasPrompt?'':cliPrompt);});
  }
  async test(value:unknown,allowCli=false){const config=AiConfigSchema.parse(value);if(config.mode==='cli'&&!allowCli)throw new Error('CLI 僅支援桌面版');if(this.controllers.size>=2)throw new Error('已有 AI 工作執行中，請稍候');const id=randomUUID(),controller=new AbortController();this.controllers.set(id,controller);const timer=setTimeout(()=>controller.abort(),30000);try{const output=await this.invoke(config,'連線測試。只回傳 JSON：{"segments":[{"start":0,"end":1,"reason":"連線成功"}]}',[],controller.signal);parsePlan(output,0,1);return {ok:true};}finally{clearTimeout(timer);this.controllers.delete(id);}}
 

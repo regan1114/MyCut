@@ -1,3 +1,4 @@
+import {SelectionExporter} from './selection-export';
 import { AiEditor } from './ai-edit';
 import { Storage } from './storage';
 import { importLogo } from './logos';
@@ -51,7 +52,7 @@ export async function startServer(options:{root?:string;port?:number;appRoot?:st
   app.post('/api/recordings',async(_req,res)=>{const rid=randomUUID();const file=path.join(root,'media',`${rid}.webm`);await fs.writeFile(file,'');recordings.set(rid,{file,seq:0,bytes:0});res.json({id:rid});});
   app.post('/api/recordings/:id/finish',async(req,res)=>{const rid=id(req.params.id);const recording=recordings.get(rid);if(!recording)throw new Error('錄音工作不存在');const file=path.join(root,'media',`${rid}.m4a`);await ffmpeg(['-i',recording.file,'-vn','-c:a','aac','-b:a','192k','-ar','48000',file]);const m=await library.import(file,true,`旁白 ${new Date().toLocaleString('zh-TW')}.m4a`);recordings.delete(rid);await fs.rm(recording.file,{force:true});res.json({media:library.list(),imported:[m.id]});});
   app.post('/api/recordings/:id/:seq',async(req,res)=>{const recording=recordings.get(id(req.params.id));if(!recording||Number(req.params.seq)!==recording.seq)throw new Error('錄音片段順序錯誤');let size=0;req.on('data',(chunk:Buffer)=>{size+=chunk.length;if(size>32*1024*1024)req.destroy(new Error('錄音片段過大'));});await pipeline(req,createWriteStream(recording.file,{flags:'a'}));recording.seq++;recording.bytes+=size;res.json({ok:true});});
-  const ai=new AiEditor(library);
+  const ai=new AiEditor(library);const selectionExporter=new SelectionExporter(library);
   app.post('/api/ai-edit/test',async(req,res)=>res.json(await ai.test(req.body)));
   app.post('/api/ai-edit/plan',async(req,res)=>res.json(await ai.plan(req.body)));
   app.post('/api/ai-edit/:id/cancel',(req,res)=>{ai.cancel(id(req.params.id));res.json({ok:true});});
@@ -139,7 +140,7 @@ export async function startServer(options:{root?:string;port?:number;appRoot?:st
   app.get('/{*splat}',(req,res)=>{if(req.path.startsWith('/api/')||req.path.startsWith('/media/'))return res.status(404).json({error:'找不到此資源'});res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");res.sendFile(path.join(appRoot,'dist/index.html'));});
   app.use((e:any,_req:express.Request,res:express.Response,_next:express.NextFunction)=>{if(res.headersSent)return;res.status(e instanceof z.ZodError?400:500).json({error:e instanceof z.ZodError?e.issues.map(i=>i.message).join('；'):e.message??'處理失敗'});});
   const server=await new Promise<ReturnType<typeof app.listen>>((resolve,reject)=>{const s=app.listen(port,'127.0.0.1',(error?:Error)=>error?reject(error):resolve(s));s.once('error',reject);});port=(server.address() as {port:number}).port;
-  return {server,port,ai,library,jobs,projects,speech,portable,root,close:()=>{ai.close();vocals.close();lyrics.close();portable.cancel();for(const controller of rhythmControllers)controller.abort();library.close();jobs.close();speech.close();server.close();}};
+  return {server,port,selectionExporter,ai,library,jobs,projects,speech,portable,root,close:()=>{selectionExporter.close();ai.close();vocals.close();lyrics.close();portable.cancel();for(const controller of rhythmControllers)controller.abort();library.close();jobs.close();speech.close();server.close();}};
 }
 if(process.argv[1]&&fileURLToPath(import.meta.url)===path.resolve(process.argv[1])){
   const service=await startServer();console.log(`Reelume running at http://127.0.0.1:${service.port}`);for(const signal of ['SIGINT','SIGTERM'] as const)process.on(signal,()=>{service.close();process.exit(0);});

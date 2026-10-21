@@ -17,7 +17,7 @@ async function makeWindow(){
   editorOpen=false;
   win=new BrowserWindow({width:1500,height:960,minWidth:1120,minHeight:740,backgroundColor:'#101010',title:'Reelume',...(isMac?{titleBarStyle:'hiddenInset',trafficLightPosition:{x:18,y:23}}:{}),webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
   if(!isMac)win.setAutoHideMenuBar(true);
-  win.on('close',event=>{if(!quitting&&editorOpen){event.preventDefault();win.webContents.send('mycut:close-editor');return;}if(!isMac&&!quitting&&(service?.jobs.isRunning||service?.speech.isRunning||service?.portable.isRunning)){event.preventDefault();win.minimize();}});
+  win.on('close',event=>{if(!quitting&&editorOpen){event.preventDefault();win.webContents.send('mycut:close-editor');return;}if(!isMac&&!quitting&&(service?.selectionExporter.isRunning||service?.jobs.isRunning||service?.speech.isRunning||service?.portable.isRunning)){event.preventDefault();win.minimize();}});
   win.webContents.setWindowOpenHandler(()=>({action:'deny'}));
   win.webContents.on('will-navigate',(event,url)=>{if(new URL(url).origin!==origin)event.preventDefault();});
   win.webContents.session.setPermissionRequestHandler((_contents,permission,callback)=>callback(permission==='media'));
@@ -38,6 +38,14 @@ if(ownsLock)app.whenReady().then(async()=>{
   handle('mycut:reveal-export',id=>{const j=service.jobs.get(id);if(j.savedPath)shell.showItemInFolder(j.savedPath);});
   handle('mycut:save-export',async(id)=>{const j=service.jobs.get(id);if(j.status!=='completed')return;const result=await dialog.showSaveDialog(win,{defaultPath:`${safeFileName(j.name)}.mp4`,filters:[{name:'MP4 影片',extensions:['mp4']}]});if(result.canceled||!result.filePath)return;await fs.copyFile(path.join(service.jobs.dir(j),'output.mp4'),result.filePath);shell.showItemInFolder(result.filePath);return true;});
   handle('mycut:relink',async(id)=>{const result=await dialog.showOpenDialog(win,{properties:['openFile']});if(result.filePaths[0])await service.library.relink(id,result.filePaths[0]);return service.library.list();});
+  handle('reelume:export-selection',async input=>{
+    const request=service.selectionExporter.describe(input),single=request.items.length===1;
+    const result=single?await dialog.showSaveDialog(win,{title:'匯出選取區塊',defaultPath:request.items[0].name,filters:[{name:request.items[0].extension.toUpperCase(),extensions:[request.items[0].extension]}]}):await dialog.showOpenDialog(win,{title:'選擇區塊匯出資料夾',properties:['openDirectory','createDirectory']});
+    const destination=single?result.filePath:result.filePaths?.[0];if(result.canceled||!destination)return {paths:[],canceled:true};
+    const exported=await service.selectionExporter.export(input,destination);if(exported.paths.length)shell.showItemInFolder(exported.paths[0]);return exported;
+  });
+  handle('reelume:cancel-selection-export',id=>{if(typeof id==='string')service.selectionExporter.cancel(id);});
+  handle('reelume:discover-ai-cli',()=>require('./ai-cli.cjs').discoverAiCli(service.root));
   handle('mycut:ai-plan',input=>service.ai.plan(input,true));
   handle('mycut:ai-test',config=>service.ai.test(config,true));
   handle('mycut:ai-cancel',id=>service.ai.cancel(id));
@@ -47,4 +55,4 @@ if(ownsLock)app.whenReady().then(async()=>{
   await makeWindow();app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)makeWindow();});
 }).catch(error=>{dialog.showErrorBox('Reelume 無法啟動',String(error.stack||error));app.quit();});
 app.on('before-quit',()=>{quitting=true;service?.close();});
-app.on('window-all-closed',()=>{if(isMac&&!quitting&&(service?.jobs.isRunning||service?.speech.isRunning||service?.portable.isRunning)){dialog.showMessageBox({type:'info',message:'Reelume 仍在背景處理工作',detail:'Reelume 會在背景繼續工作。可從 Dock 重新打開視窗。'});return;}app.quit();});
+app.on('window-all-closed',()=>{if(isMac&&!quitting&&(service?.selectionExporter.isRunning||service?.jobs.isRunning||service?.speech.isRunning||service?.portable.isRunning)){dialog.showMessageBox({type:'info',message:'Reelume 仍在背景處理工作',detail:'Reelume 會在背景繼續工作。可從 Dock 重新打開視窗。'});return;}app.quit();});

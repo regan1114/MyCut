@@ -1,0 +1,9 @@
+{
+  "version": "0.6.41",
+  "packaged": true,
+  "restrictedPathDiscovery": "passed",
+  "automaticParameters": "passed",
+  "advancedFieldsCollapsed": "passed",
+  "codexRealConnection": "passed",
+  "claudeAndGemini": "not installed; presets and missing-tool UI tested with fixtures"
+}
