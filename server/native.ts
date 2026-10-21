@@ -1,3 +1,4 @@
+import { availableParallelism } from 'node:os';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -6,6 +7,8 @@ import { unpackedPath } from '../shared/platform';
 const unpack=(p:string|null)=>{if(!p)throw new Error('此平台缺少原生媒體工具');return unpackedPath(p);};
 export const ffmpegPath:string = process.env.FFMPEG_PATH || unpack(require('ffmpeg-static'));
 export const ffprobePath:string = process.env.FFPROBE_PATH || unpack(process.platform==='darwin'&&process.arch==='arm64'?path.join(path.dirname(require.resolve('@ffprobe-installer/darwin-arm64/package.json')),'ffprobe'):require('ffprobe-static').path);
+// Keep encoding from competing with the compositor and preview for every CPU core.
+export const exportThreads=Math.max(2,Math.min(4,availableParallelism()-2));
 export function runNative(binary:string,args:string[],options:{signal?:AbortSignal;onProgress?:(seconds:number)=>void;onProcess?:(p:ChildProcess)=>void}={}): Promise<string> {
   return new Promise((resolve,reject)=>{
     if(options.signal?.aborted) return reject(new Error('工作已暫停'));

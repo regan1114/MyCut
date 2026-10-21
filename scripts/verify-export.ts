@@ -14,7 +14,7 @@ const library=new Library(root);await library.init();const m=await library.impor
 const p=projectWithOverlay();p.name='實際影音匯出驗證';p.clips=[
  makeClip({kind:'video',trackId:'main',mediaId:m.id,start:0,duration:90,name:'A',volume:.3}),
  makeClip({kind:'video',trackId:'main',mediaId:m.id,start:90,duration:90,sourceIn:3,name:'B',volume:.3,speed:1.25,brightness:.04,saturation:.7}),
- makeClip({kind:'text',trackId:'text',start:15,duration:150,text:'MyCut 商用字型驗證\n你好，世界。',fontId:'huninn',fontSize:90,fadeIn:10,fadeOut:10}),
+ makeClip({kind:'text',trackId:'text',start:15,duration:150,text:'Reelume 商用字型驗證\n你好，世界。',fontId:'huninn',fontSize:90,fadeIn:10,fadeOut:10}),
  makeClip({kind:'shape',trackId:'overlay',start:45,duration:60,color:'#5edacc',shape:'circle',scale:.2,x:.3,y:.2,keyframes:[{frame:0,x:-.2,y:.2,scale:.2,opacity:.6},{frame:60,x:.3,y:.2,scale:.3,opacity:.9}]}),
 ];
 const jobs=new Jobs(path.join(root,'exports'),library,fonts,fontRoot);await jobs.init();const job=await jobs.create(p,{resolution:720,quality:'standard',encoder:'libx264'});

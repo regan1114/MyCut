@@ -1,4 +1,4 @@
-/** MyCut's own known-lyrics aligner. It never calls ASR or another application. */
+/** Reelume's own known-lyrics aligner. It never calls ASR or another application. */
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
@@ -50,7 +50,7 @@ function workerRuntime(appRoot: string, override?: WorkerOverride): WorkerRuntim
     return {
       ...override,
       available: existsSync(override.model),
-      message: existsSync(override.model) ? 'MyCut 對齊引擎已就緒。' : '找不到 MyCut 對齊模型。',
+      message: existsSync(override.model) ? 'Reelume 對齊引擎已就緒。' : '找不到 Reelume 對齊模型。',
     };
 
   const packed = appRoot.includes('app.asar');
@@ -70,7 +70,7 @@ function workerRuntime(appRoot: string, override?: WorkerOverride): WorkerRuntim
       args: [],
       model,
       available: existsSync(model),
-      message: existsSync(model) ? 'MyCut 對齊引擎已就緒。' : '找不到 MyCut 對齊模型，請重新安裝。',
+      message: existsSync(model) ? 'Reelume 對齊引擎已就緒。' : '找不到 Reelume 對齊模型，請重新安裝。',
     };
 
   if (packed)
@@ -79,7 +79,7 @@ function workerRuntime(appRoot: string, override?: WorkerOverride): WorkerRuntim
       args: [],
       model,
       available: false,
-      message: `此 MyCut 安裝包缺少 ${platform} 歌詞對齊引擎。請重新下載完整安裝包。`,
+      message: `此 Reelume 安裝包缺少 ${platform} 歌詞對齊引擎。請重新下載完整安裝包。`,
     };
 
   const localPython = ['-py3.12', '-py3.11', '-py3.10', '-py3.9', ''].map(version => path.join(
@@ -97,10 +97,10 @@ function workerRuntime(appRoot: string, override?: WorkerOverride): WorkerRuntim
     model,
     available: modelExists && workerExists,
     message: !workerExists
-      ? '找不到 MyCut 本機對齊程式。'
+      ? '找不到 Reelume 本機對齊程式。'
       : !modelExists
-        ? '找不到 MyCut 內建對齊模型。'
-        : 'MyCut 對齊引擎已就緒。',
+        ? '找不到 Reelume 內建對齊模型。'
+        : 'Reelume 對齊引擎已就緒。',
   };
 }
 
@@ -156,7 +156,7 @@ export class LyricsBridge {
   }
 
   async create(raw: unknown, settings: unknown) {
-    if (this.closed) throw new Error('MyCut 歌詞對齊工具正在關閉。');
+    if (this.closed) throw new Error('Reelume 歌詞對齊工具正在關閉。');
     if ([...this.jobs.values()].some((job) => !terminal(job)))
       throw new Error('已有原稿對齊工作，請等待完成或取消。');
     const health = this.health();
@@ -262,7 +262,7 @@ export class LyricsBridge {
         if (signal.aborted || job.status === 'cancelled') return resolve(undefined as never);
         if (failure) return reject(failure);
         if (result) return resolve(result);
-        reject(new Error(stderr.trim() || `MyCut 對齊引擎意外結束（${code ?? 'unknown'}）。`));
+        reject(new Error(stderr.trim() || `Reelume 對齊引擎意外結束（${code ?? 'unknown'}）。`));
       });
       worker.stdin.on('error', () => {});
       worker.stdin.end(
@@ -296,7 +296,7 @@ export class LyricsBridge {
       );
       if (terminal(job)) return;
       job.status = 'processing';
-      job.message = '正在載入 MyCut 本機對齊引擎…';
+      job.message = '正在載入 Reelume 本機對齊引擎…';
       job.progress.percent = 5;
       await this.save(job);
 
@@ -319,7 +319,7 @@ export class LyricsBridge {
     } catch (error) {
       if (!terminal(job)) {
         job.status = 'error';
-        job.message = error instanceof Error ? error.message : 'MyCut 本機歌詞對齊失敗。';
+        job.message = error instanceof Error ? error.message : 'Reelume 本機歌詞對齊失敗。';
         await this.save(job);
       }
     } finally {
@@ -336,7 +336,7 @@ export class LyricsBridge {
       job = JSON.parse(await fs.readFile(path.join(this.root, id, 'job.json'), 'utf8')) as LyricsJob;
       if (!terminal(job)) {
         job.status = 'error';
-        job.message = 'MyCut 上次對齊因應用程式關閉而中斷，請重新開始。';
+        job.message = 'Reelume 上次對齊因應用程式關閉而中斷，請重新開始。';
         await this.save(job);
       }
       this.jobs.set(id, job);

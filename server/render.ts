@@ -5,7 +5,7 @@ import { Resvg } from '@resvg/resvg-js';
 import type { Clip, ExportSettings, FontInfo, Project } from '../shared/model';
 import { clipSvg } from '../shared/text-svg';
 import type { Library } from './library';
-import { ffmpeg } from './native';
+import { ffmpeg, exportThreads } from './native';
 import { segmentHasEffects } from '../shared/effect-timeline';
 import { renderEffectStream } from './effects-render';
 import { hasKaraoke } from '../shared/karaoke';
@@ -32,7 +32,7 @@ export async function renderSegment(p:Project,library:Library,fonts:FontInfo[],f
   const tracks=p.tracks.slice().reverse();
   const clips=tracks.flatMap(t=>t.hidden?[]:p.clips.filter(c=>c.kind!=='effect'&&c.trackId===t.id&&c.start<to&&c.start+c.duration>from));
   if(clips.length>32)throw new Error('同時疊加片段超過 32 個，請先合併部分軌道再匯出。');
-  const args=['-f','lavfi','-i',`color=c=${p.background}:s=${W}x${H}:r=${p.fps}:d=${n(dur)}`,'-f','lavfi','-i','anullsrc=r=48000:cl=stereo'];
+  const args=['-filter_complex_threads','2','-f','lavfi','-i',`color=c=${p.background}:s=${W}x${H}:r=${p.fps}:d=${n(dur)}`,'-f','lavfi','-i','anullsrc=r=48000:cl=stereo'];
   const filters=[`[0:v]format=yuv420p[base0]`,`[1:a]atrim=end_sample=${Math.round(dur*48000)},asetpts=PTS-STARTPTS[silence]`];let input=2,layer=0;const audio=['[silence]'];
   await fs.mkdir(workdir,{recursive:true});
   const temporary:string[]=[],karaokeCount=clips.filter(hasKaraoke).length;let karaokeDone=0;
@@ -88,7 +88,7 @@ export async function renderSegment(p:Project,library:Library,fonts:FontInfo[],f
     return;
   }
   args.push('-filter_complex_script',graph,'-map','[vout]','-map','[aout]','-c:v',settings.encoder);
-  if(settings.encoder==='libx264')args.push('-preset','fast','-crf',settings.quality==='high'?'18':'23','-threads','2');
+  if(settings.encoder==='libx264')args.push('-preset','fast','-crf',settings.quality==='high'?'18':'23','-threads',String(exportThreads));
   else args.push('-b:v',`${settings.resolution===2160?40:settings.resolution===1080?12:6}M`,'-allow_sw','1');
   args.push('-pix_fmt','yuv420p','-r',String(p.fps),'-video_track_timescale',String(p.fps*1000),'-c:a','pcm_s16le','-ar','48000','-ac','2','-t',n(dur),'-progress','pipe:1','-nostats',dest);
   try{await ffmpeg(args,renderingOptions);}finally{await fs.rm(graph,{force:true});}

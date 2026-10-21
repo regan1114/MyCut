@@ -18,7 +18,7 @@ test.beforeAll(async({request})=>{
       if(color==='red')ctx.fillRect(40,30,240,120);else ctx.fillRect(0,0,320,180);
       await fs.writeFile(file,await canvas.encode('png'));
     }else await ffmpeg(['-f','lavfi','-i',`color=c=${color}:s=320x180:r=30:d=2`,'-c:v','libx264','-pix_fmt','yuv420p',file]);
-    const response=await request.post('/api/media/upload',{headers:{'X-MyCut':'1'},multipart:{file:{name,mimeType:kind==='image'?'image/png':'video/mp4',buffer:await fs.readFile(file)}}});
+    const response=await request.post('/api/media/upload',{headers:{'X-Reelume':'1'},multipart:{file:{name,mimeType:kind==='image'?'image/png':'video/mp4',buffer:await fs.readFile(file)}}});
     expect(response.ok()).toBeTruthy();const uploaded=await response.json();expect(uploaded.errors).toEqual([]);
     mediaIds.set(`${color}-${kind}`,uploaded.imported[0]);
   }
@@ -33,7 +33,7 @@ for(const upperKind of ['image','video'] as const)for(const lowerKind of ['image
     const lower=makeClip({kind:lowerKind,trackId:'main',mediaId:mediaIds.get(`blue-${lowerKind}`),start:0,duration:60,name:'下層藍色'});
     // Deliberately store the upper clip first: clip insertion order must not determine stacking.
     p.clips=[upper,lower];
-    expect((await page.request.put(`/api/projects/${p.id}`,{headers:{'X-MyCut':'1'},data:p})).ok()).toBeTruthy();
+    expect((await page.request.put(`/api/projects/${p.id}`,{headers:{'X-Reelume':'1'},data:p})).ok()).toBeTruthy();
     await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
     const canvas=page.getByLabel('影片預覽，可拖曳影片或圖片調整位置');
     const pixels=()=>canvas.evaluate((el:HTMLCanvasElement)=>[.5,.1].map(x=>Array.from(el.getContext('2d')!.getImageData(el.width*x,el.height/2,1,1).data).slice(0,3)));
@@ -54,7 +54,7 @@ for(const upperKind of ['image','video'] as const)for(const lowerKind of ['image
     await expect(page.getByText('已儲存至本機',{exact:true})).toBeVisible();
     const saved=await(await page.request.get(`/api/projects/${p.id}`)).json() as Project;
     expect(saved.clips).toEqual(p.clips);
-    const response=await page.request.post('/api/exports',{headers:{'X-MyCut':'1'},data:{project:saved,settings:{resolution:720,quality:'standard',encoder:'libx264'}}});
+    const response=await page.request.post('/api/exports',{headers:{'X-Reelume':'1'},data:{project:saved,settings:{resolution:720,quality:'standard',encoder:'libx264'}}});
     expect(response.ok()).toBeTruthy();const {id}=await response.json();
     let job:ExportJob|undefined;
     await expect.poll(async()=>{job=(await(await page.request.get('/api/exports')).json() as ExportJob[]).find(j=>j.id===id);return job?.status;},{timeout:45000,intervals:[250,500]}).toMatch(/completed|failed/);

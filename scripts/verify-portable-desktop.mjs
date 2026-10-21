@@ -8,7 +8,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const require=createRequire(import.meta.url),root=await fs.mkdtemp(path.join(os.tmpdir(),'mycut 可攜專案-'));
-const binary=process.env.MYCUT_TEST_APP??path.resolve(process.platform==='win32'?'release/win-unpacked/MyCut.exe':`release/${process.arch==='arm64'?'mac-arm64':'mac'}/MyCut.app/Contents/MacOS/MyCut`);
+const binary=process.env.MYCUT_TEST_APP??path.resolve(process.platform==='win32'?'release/win-unpacked/Reelume.exe':`release/${process.arch==='arm64'?'mac-arm64':'mac'}/Reelume.app/Contents/MacOS/Reelume`);
 const source=path.join(root,'原始影片.mp4'),bundle=path.join(root,'完整專案.mycutpack');
 await promisify(execFile)(require('ffmpeg-static'),['-hide_banner','-y','-f','lavfi','-i','testsrc2=size=320x180:rate=30','-f','lavfi','-i','sine=frequency=440:sample_rate=48000','-t','4','-c:v','libx264','-preset','ultrafast','-c:a','aac',source]);
 const errors=[];let app;

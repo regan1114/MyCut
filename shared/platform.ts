@@ -6,7 +6,7 @@ export function unpackedPath(value:string):string {
 }
 
 export function safeFileName(value:string):string {
-  const name=value.normalize('NFC').replace(/[<>:"/\\|?*\x00-\x1f]/g,'_').trim().replace(/[. ]+$/g,'').slice(0,120).replace(/[. ]+$/g,'') || 'MyCut';
+  const name=value.normalize('NFC').replace(/[<>:"/\\|?*\x00-\x1f]/g,'_').trim().replace(/[. ]+$/g,'').slice(0,120).replace(/[. ]+$/g,'') || 'Reelume';
   return /^(con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?:\.|$)/i.test(name) ? '_'+name : name;
 }
 

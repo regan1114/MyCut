@@ -14,7 +14,7 @@ export class CustomFonts {
   private entries:Entry[]=[];
   private chain:Promise<unknown>=Promise.resolve();
   constructor(root:string,private fonts:FontInfo[]){this.root=path.join(root,'custom-fonts');}
-  private info(entry:Entry,missing=false):FontInfo{return {id:entry.id,family:missing?'Noto Sans TC':`MyCut-${entry.id}`,label:entry.label,language:'自訂',category:'自訂字型',file:entry.id+entry.extension,license:'',source:'',custom:true,...(missing?{missing:true}:{})};}
+  private info(entry:Entry,missing=false):FontInfo{return {id:entry.id,family:missing?'Noto Sans TC':`Reelume-${entry.id}`,label:entry.label,language:'自訂',category:'自訂字型',file:entry.id+entry.extension,license:'',source:'',custom:true,...(missing?{missing:true}:{})};}
   private register(entry:Entry){const info=this.info(entry);if(!GlobalFonts.registerFromPath(path.join(this.root,info.file),info.family))throw new Error(`無法載入自訂字型：${entry.label}`);return info;}
   async init(){
     await fs.mkdir(this.root,{recursive:true});

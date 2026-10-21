@@ -1,0 +1,10 @@
+{
+  "version": "0.6.34",
+  "packaged": true,
+  "pickerCancellation": "passed",
+  "automaticSave": "passed",
+  "noSecondPrompt": "passed",
+  "revealSavedFile": "passed",
+  "savedFileSurvivesClose": "passed",
+  "isolatedData": "/var/folders/ff/1ctz97qd2n12pzj54hd1rd0r0000gn/T/mycut-auto-save-VLKltH"
+}

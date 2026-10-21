@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 
 test('Windows renderer uses Ctrl shortcuts, normal title spacing and server encoder capabilities',async({page})=>{
  // This checks renderer branches only. It does not simulate native Windows execution.
- await page.addInitScript(()=>{(window as any).mycut={platform:'win32'};});
+ await page.addInitScript(()=>{(window as any).reelume={platform:'win32'};});
  await page.route('**/api/health',route=>route.fulfill({json:{ok:true,platform:'win32',arch:'x64',encoders:['libx264']}}));
  await page.goto('/');await expect(page.locator('.project-home')).toHaveClass(/desktop-win32/);
  await page.getByRole('button',{name:'開啟示範專案',exact:true}).click();

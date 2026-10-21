@@ -1,6 +1,6 @@
 # Third-party components
 
-MyCut is a local video editor, not affiliated with CapCut or ByteDance. The interface and demo illustration in this repository are original implementations.
+Reelume is a local video editor, not affiliated with CapCut or ByteDance. The interface and demo illustration in this repository are original implementations.
 
 ## Fonts
 
@@ -44,7 +44,7 @@ Reproduce the engine and verify model integrity with `npm run speech:install`. m
 
 ## Known-lyrics alignment
 
-MyCut bundles a separate native Python alignment worker and OpenAI Whisper small checkpoint for direct forced alignment. It runs offline and is not a LyricFlow service dependency.
+Reelume bundles a separate native Python alignment worker and OpenAI Whisper small checkpoint for direct forced alignment. It runs offline and is not a LyricFlow service dependency.
 
 - stable-ts 2.19.1, MIT: https://github.com/jianfch/stable-ts . License: `resources/lyrics-alignment/licenses/stable-ts-MIT.txt`.
 - OpenAI Whisper 20250625 code and small model checkpoint, MIT: https://github.com/openai/whisper . License: `resources/lyrics-alignment/licenses/OpenAI-Whisper-MIT.txt`; model URL, SHA-256 and source are in `resources/lyrics-alignment/models/manifest.json`.
@@ -52,12 +52,22 @@ MyCut bundles a separate native Python alignment worker and OpenAI Whisper small
 - OpenCC-Python-Reimplemented 0.1.7, MIT; NumPy 1.26.4, BSD; Numba 0.60.0 and llvmlite 0.43.0, BSD; tiktoken 0.14.0, MIT. License files and third-party notices are included under `resources/lyrics-alignment/licenses/`.
 - PyInstaller 6.15.0 is a build-time tool; its compiled bootloader is used by the worker executable. Its GPL terms and bootloader exception are included as `resources/lyrics-alignment/licenses/PyInstaller-COPYING.txt`. PyInstaller hooks are build-time only.
 
-Pre-trained Demucs separation weights are not distributed. The source repository labels its code MIT, while the upstream issue about licensing the separate pre-trained weights does not establish a redistribution grant ([upstream model-license discussion](https://github.com/facebookresearch/demucs/issues/327)). MyCut conservatively leaves that optional model and UI choice out of the installer.
+Pre-trained Demucs separation weights are not distributed. The source repository labels its code MIT, while the upstream issue about licensing the separate pre-trained weights does not establish a redistribution grant ([upstream model-license discussion](https://github.com/facebookresearch/demucs/issues/327)). Reelume conservatively leaves that optional model and UI choice out of the installer.
 
 Microsoft Visual C++ v14 runtime DLLs are deployed beside the Windows application and speech engine, without changing the system installation. Copyright Microsoft Corporation. Original runtime license: https://aka.ms/VCRedistLicense . Fixed download URL and original DLL SHA-256 hashes: `resources/windows-runtime/x64/manifest.json`. These DLLs retain their original signatures and are not covered by the application or Whisper MIT licenses.
 
 ## Atmosphere effects
 
-Atmosphere effect designs were adapted at the workspace owner’s request from the adjacent `lyric_flow` project: `web/src/engine/passes/drawAtmosphere.ts`, `drawBranding.ts`, `drawBackground.ts`, `particles.ts`, `grading.ts`, and `rhythm.ts`. MyCut uses its own deterministic timeline animation and audio-envelope sampler. No song assets or other project files are bundled. Elven particles use the already bundled OFL Noto Sans TC font.
+Atmosphere effect designs were adapted at the workspace owner’s request from the adjacent `lyric_flow` project: `web/src/engine/passes/drawAtmosphere.ts`, `drawBranding.ts`, `drawBackground.ts`, `particles.ts`, `grading.ts`, and `rhythm.ts`. Reelume uses its own deterministic timeline animation and audio-envelope sampler. No song assets or other project files are bundled. Elven particles use the already bundled OFL Noto Sans TC font.
 
 - `@napi-rs/canvas`: MIT, https://github.com/Brooooooklyn/canvas ; Skia-based native Canvas renderer. Original package notices are included in `node_modules/@napi-rs/`.
+
+## Demucs vocal separation
+
+The local vocal separation engine uses Demucs 4.0.1 and the official Hybrid
+Transformer Demucs model (`955717e8-8726e21a.th`), by Meta Platforms, Inc. and
+contributors, under the MIT license. Source and model documentation:
+https://github.com/facebookresearch/demucs
+The engine also uses PyTorch / torchaudio (BSD-style licenses), NumPy (BSD-3-Clause)
+and SoundFile / libsndfile (BSD-3-Clause / LGPL). Their package license files are
+collected into `resources/vocal-separation/licenses` by the setup and packaging steps.

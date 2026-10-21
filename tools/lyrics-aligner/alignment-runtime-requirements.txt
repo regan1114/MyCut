@@ -1,4 +1,4 @@
-# Runtime dependencies for the bundled MyCut known-lyrics alignment engine.
+# Runtime dependencies for the bundled Reelume known-lyrics alignment engine.
 # Build only on the native OS/architecture recorded by the desktop package.
 # These pins support CPython 3.9–3.12, including Intel macOS; do not widen the
 # Python range without checking NumPy, Numba and native PyTorch wheels together.

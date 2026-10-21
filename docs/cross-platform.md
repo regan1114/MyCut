@@ -1,4 +1,6 @@
-# MyCut 0.6.11：Mac／Windows
+# MyCut 0.6.11：Mac／Windows（歷史紀錄）
+
+> 本文記錄更名前的 0.6.11，以下保留當時名稱與建置條件。Reelume 的現行安裝、資料位置與原生建置要求請見 [README](../README.md)。
 
 共用 TypeScript、React 與 Electron 程式碼；影片、特效、字型、字幕和歌詞在本機處理。每個平台使用自己的 FFmpeg、ffprobe、Skia、resvg 和 whisper.cpp 原生執行檔，沒有把 Mac 二進位檔直接搬到 Windows。
 

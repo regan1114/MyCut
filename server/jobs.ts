@@ -1,11 +1,16 @@
 import { requireEncoder } from '../shared/platform';
 import fs from 'node:fs/promises';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { pipeline } from 'node:stream/promises';
+import { z } from 'zod';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { ProjectSchema, endFrame, type Project, type ExportJob, type ExportSettings, type FontInfo } from '../shared/model';
 import { Library } from './library';
 import { renderSegment, segmentPlan } from './render';
 import { ffmpeg, probe } from './native';
+
+const Settings=z.object({resolution:z.union([z.literal(720),z.literal(1080),z.literal(2160)]),quality:z.enum(['standard','high']),encoder:z.enum(['libx264','h264_videotoolbox'])});
 
 type JobRecord=ExportJob & {project:Project;fingerprints:Record<string,{size:number;mtimeMs:number}>};
 export class Jobs {
@@ -16,11 +21,12 @@ export class Jobs {
   get(id:string){const j=this.records.find(j=>j.id===id);if(!j)throw new Error('匯出工作不存在');return j;}
   dir(j:JobRecord){return path.join(this.root,j.id);}
   async fingerprints(p:Project){const result:JobRecord['fingerprints']={};for(const id of new Set(p.clips.flatMap(c=>c.mediaId?[c.mediaId]:[]))){const m=this.library.get(id);const st=await fs.stat(m.path).catch(()=>null);if(!st)throw new Error(`找不到素材「${m.name}」，請先重新連結。`);result[id]={size:st.size,mtimeMs:st.mtimeMs};}return result;}
-  async create(project:Project,settings:ExportSettings){
+  async create(project:Project,settings:ExportSettings,destination?:string){
+    settings=Settings.parse(settings);
     requireEncoder(settings.encoder,process.platform);const p=ProjectSchema.parse(project);if(!p.clips.length)throw new Error('請先加入至少一個片段');const duration=endFrame(p)/p.fps;
     const space=await fs.statfs(this.root);const estimated=duration*((settings.resolution===2160?50:settings.resolution===1080?16:8)*1e6/8+192000)*2+256e6;
     if(space.bavail*space.bsize<estimated)throw new Error(`磁碟空間不足，預估需至少 ${(estimated/1e9).toFixed(1)} GB 可用空間。`);
-    const j:JobRecord={id:randomUUID(),name:p.name,status:'queued',progress:0,completedSegments:0,totalSegments:segmentPlan(p).length,duration,createdAt:new Date().toISOString(),settings,project:p,fingerprints:await this.fingerprints(p)};
+    const j:JobRecord={id:randomUUID(),name:p.name,status:'queued',progress:0,completedSegments:0,totalSegments:segmentPlan(p).length,duration,createdAt:new Date().toISOString(),settings,destination,project:p,fingerprints:await this.fingerprints(p)};
     await fs.mkdir(this.dir(j),{recursive:true});this.records.push(j);void this.pump();return j;
   }
   async pause(id:string){const j=this.get(id);if(j.status==='running'){j.status='paused';this.controller?.abort();await this.settled;}else if(j.status==='queued')j.status='paused';}
@@ -48,7 +54,9 @@ export class Jobs {
       const concat=path.join(dir,'concat.txt');await fs.writeFile(concat,list.join('\n')+'\n');const partial=path.join(dir,'output.partial.mp4');
       await ffmpeg(['-f','concat','-safe','1','-i',concat,'-map','0:v','-map','0:a','-c:v','copy','-c:a','aac','-b:a','192k','-t',String(j.duration),'-movflags','+faststart','-progress','pipe:1','-nostats',partial],{signal:this.controller.signal,onProgress:s=>{j.progress=.97+Math.min(1,s/j.duration)*.03;}});
       const info=await probe(partial);if(Math.abs(Number(info.format.duration)-j.duration)>Math.max(.15,2/j.project.fps))throw new Error('成品長度驗證失敗，分段已保留，可重試。');
-      await fs.rename(partial,path.join(dir,'output.mp4'));j.output=`/api/exports/${j.id}/file`;j.status='completed';j.progress=1;
+      await fs.rename(partial,path.join(dir,'output.mp4'));j.output=`/api/exports/${j.id}/file`;
+      if(j.destination){const temporary=path.join(path.dirname(j.destination),`.reelume-${j.id}.partial.mp4`);try{await pipeline(createReadStream(path.join(dir,'output.mp4')),createWriteStream(temporary,{flags:'wx'}),{signal:this.controller.signal});this.controller.signal.throwIfAborted();await fs.rename(temporary,j.destination);j.savedPath=j.destination;}catch(error){throw new Error(`影片儲存失敗，請確認目的資料夾或磁碟後按「繼續」：${(error as Error).message}`);}finally{await fs.rm(temporary,{force:true}).catch(()=>{});}}
+      j.status='completed';j.progress=1;
       // Successful output is self-contained; release intermediate disk space.
       for(const entry of await fs.readdir(dir)){if(entry.startsWith('segment-')||entry.startsWith('partial-')||entry==='assets'||entry==='concat.txt')await fs.rm(path.join(dir,entry),{recursive:true,force:true}).catch(()=>{});}
     }catch(e:any){if(this.controller.signal.aborted){j.status='paused';}else{j.status='failed';j.error=e.message;}}finally{this.running=false;this.controller=undefined;this.activeId=undefined;this.settled=undefined;finished();void this.pump();}

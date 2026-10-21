@@ -6,7 +6,7 @@ import { checkTimelineWheelRecovery, checkTimelineWheelZoom } from '../tests/ui/
 
 const root=await fs.mkdtemp(path.join(os.tmpdir(),'mycut-timeline-wheel-'));
 const version=(JSON.parse(await fs.readFile('package.json','utf8')) as {version:string}).version;
-const binary=process.env.MYCUT_TEST_APP??path.resolve(`release/${version}/mac/MyCut.app/Contents/MacOS/MyCut`);
+const binary=process.env.MYCUT_TEST_APP??path.resolve(`release/${version}/mac/Reelume.app/Contents/MacOS/Reelume`);
 const env:Record<string,string>={...Object.fromEntries(Object.entries(process.env).filter((entry):entry is [string,string]=>entry[1]!==undefined)),MYCUT_DATA_DIR:root};delete env.ELECTRON_RUN_AS_NODE;
 let app:Awaited<ReturnType<typeof electron.launch>>|undefined;
 try{

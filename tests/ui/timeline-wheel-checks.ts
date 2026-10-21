@@ -9,7 +9,7 @@ export async function checkTimelineWheelZoom(page:Page,modifier:'Meta'|'Alt'){
     const trackId=`wheel-text-${i}`;p.tracks.push({id:trackId,name:`文字 ${i+1}`,kind:'text',manualTextLane:true,locked:false,hidden:false,muted:false});
     p.clips.push(makeClip({kind:'text',trackId,start:0,duration:60,text:`字幕 ${i+1}`}));
   }
-  expect((await page.request.put(url(`/api/projects/${p.id}`),{headers:{'X-MyCut':'1'},data:p})).ok()).toBeTruthy();
+  expect((await page.request.put(url(`/api/projects/${p.id}`),{headers:{'X-Reelume':'1'},data:p})).ok()).toBeTruthy();
   await page.goto(url('/'));await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
   const scroll=page.locator('.timeline-scroll'),body=page.locator('.timeline-body'),slider=page.getByRole('slider',{name:'時間軸縮放',exact:true});
   await expect(slider).toHaveAttribute('data-tooltip',`${modifier==='Meta'?'Command':'Alt'}＋滑鼠滾輪縮放`);
@@ -50,7 +50,7 @@ export async function checkTimelineWheelRecovery(page:Page,scenario:'modifier'|'
   const url=(pathname:string)=>new URL(pathname,page.url()).href;
   const p=newProject();p.name=`滾輪相容性 ${scenario} ${p.id.slice(0,8)}`;
   p.clips=[makeClip({kind:'shape',trackId:'main',start:0,duration:p.fps*300,name:'長片段'})];
-  expect((await page.request.put(url(`/api/projects/${p.id}`),{headers:{'X-MyCut':'1'},data:p})).ok()).toBeTruthy();
+  expect((await page.request.put(url(`/api/projects/${p.id}`),{headers:{'X-Reelume':'1'},data:p})).ok()).toBeTruthy();
   await page.goto(url('/'));await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
   const ruler=page.locator('.time-ruler'),read=()=>page.locator('.timeline-content').evaluate(el=>el.getBoundingClientRect().width/310);
   const dispatch=(init:Pick<WheelEventInit,'deltaX'|'deltaY'|'deltaMode'|'altKey'|'metaKey'>)=>ruler.evaluate((el,init)=>{

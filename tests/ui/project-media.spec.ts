@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import { makeClip, newProject, type Project } from '../../shared/model';
 import { nextProjectName } from '../../shared/projects';
 
-const headers={'X-MyCut':'1'};
+const headers={'X-Reelume':'1'};
 const saved=async(page:Page,id:string)=>{await expect(page.getByText('已儲存至本機',{exact:true})).toBeVisible();return await(await page.request.get(`/api/projects/${id}`)).json() as Project;};
 const upload=async(page:Page,name:string)=>{const response=await page.request.post('/api/media/upload',{headers,multipart:{file:{name,mimeType:'audio/wav',buffer:await fs.readFile('tests/fixtures/original-en.wav')}}});expect(response.ok()).toBeTruthy();return response.json();};
 const open=async(page:Page,p:Project)=>{await page.request.put(`/api/projects/${p.id}`,{headers,data:p});await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();};

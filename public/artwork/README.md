@@ -1,4 +1,4 @@
-# MyCut library illustrations
+# Reelume library illustrations
 
 53 original SVG illustrations made for this workspace: 40 effects, 5 transitions, and 8 color presets. They use editable vector paths, local gradients, and soft lighting; no stock images, external fonts, network requests, or embedded bitmap assets.
 

@@ -11,7 +11,7 @@ export async function checkCaptionDeletion(page:Page){
     makeClip({kind:'text',trackId:'locked-captions',start:270,duration:90,text:'鎖定保留字幕',captionType:'captions'}),
     makeClip({kind:'shape',trackId:'main',start:0,duration:360,name:'群組底圖',groupId})
   ];
-  expect((await page.request.put(url(`/api/projects/${p.id}`),{headers:{'X-MyCut':'1'},data:p})).ok()).toBeTruthy();
+  expect((await page.request.put(url(`/api/projects/${p.id}`),{headers:{'X-Reelume':'1'},data:p})).ok()).toBeTruthy();
   await page.goto(url('/'));await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
   await page.getByRole('button',{name:'第一句字幕，00:00:00:00',exact:true}).click();await page.getByRole('button',{name:'字幕屬性',exact:true}).click();
   const list=page.getByRole('list',{name:'專案字幕清單'}),search=page.getByLabel('搜尋字幕內容');

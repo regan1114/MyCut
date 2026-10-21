@@ -2,7 +2,7 @@ import { projectWithOverlay } from '../fixtures/project';
 import { test, expect } from '@playwright/test';
 import { makeClip, type Project } from '../../shared/model';
 
-async function open(page:any,p:Project){expect((await page.request.put(`/api/projects/${p.id}`,{headers:{'X-MyCut':'1'},data:p})).ok()).toBeTruthy();await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();await expect(page.getByRole('button',{name:'匯出影片',exact:true})).toBeVisible();}
+async function open(page:any,p:Project){expect((await page.request.put(`/api/projects/${p.id}`,{headers:{'X-Reelume':'1'},data:p})).ok()).toBeTruthy();await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();await expect(page.getByRole('button',{name:'匯出影片',exact:true})).toBeVisible();}
 const read=async(page:any,p:Project)=>await(await page.request.get(`/api/projects/${p.id}`)).json() as Project;
 
 test('multi-selection groups move and duplicate together, undo and reload retain relations',async({page})=>{

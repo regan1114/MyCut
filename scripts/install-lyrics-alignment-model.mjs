@@ -29,7 +29,7 @@ for (const model of manifest.models) {
 
   const temporary = `${output}.download`;
   await fs.rm(temporary, { force: true });
-  console.log(`下載 MyCut 原稿對齊模型：${model.file}`);
+  console.log(`下載 Reelume 原稿對齊模型：${model.file}`);
   const response = await fetch(model.url, { redirect: 'follow' });
   if (!response.ok || !response.body)
     throw new Error(`下載模型失敗 (${response.status})：${model.url}`);

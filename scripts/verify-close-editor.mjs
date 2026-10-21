@@ -7,7 +7,7 @@ import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url),root=await fs.mkdtemp(path.join(os.tmpdir(),'mycut-close-editor-'));
 const unpackaged=process.env.MYCUT_TEST_UNPACKAGED==='1';
-const binary=unpackaged?require('electron'):(process.env.MYCUT_TEST_APP??path.resolve(process.platform==='win32'?'release/win-unpacked/MyCut.exe':`release/${process.arch==='arm64'?'mac-arm64':'mac'}/MyCut.app/Contents/MacOS/MyCut`));
+const binary=unpackaged?require('electron'):(process.env.MYCUT_TEST_APP??path.resolve(process.platform==='win32'?'release/win-unpacked/Reelume.exe':`release/${process.arch==='arm64'?'mac-arm64':'mac'}/Reelume.app/Contents/MacOS/Reelume`));
 const env={...process.env,MYCUT_DATA_DIR:root};delete env.ELECTRON_RUN_AS_NODE;
 let app;
 async function launch(){app=await electron.launch({executablePath:binary,env,args:[...(unpackaged?['.']:[]),`--user-data-dir=${path.join(root,'profile')}`],timeout:30000});const page=await app.firstWindow();page.on('pageerror',e=>errors.push(e.message));return page;}
@@ -29,10 +29,10 @@ try{
  await page.unroute('**/api/projects/*');await closeWindow();await expect(page.locator('.project-home')).toBeVisible();assert.equal((await data(page)).clips[0].text,'儲存失敗後仍保留的修改');
  await page.getByRole('button',{name:`開啟 ${(await data(page)).name}`,exact:true}).click();
  // Closing the editor does not shut down a running native export.
- const job=await page.evaluate(async()=>{const projects=await(await fetch('/api/projects')).json(),p=await(await fetch(`/api/projects/${projects[0].id}`)).json();p.clips=p.clips.map(c=>({...c,start:0,duration:3600*p.fps}));return await(await fetch('/api/exports',{method:'POST',headers:{'Content-Type':'application/json','X-MyCut':'1'},body:JSON.stringify({project:p,settings:{resolution:720,quality:'standard',encoder:'libx264'}})})).json();});assert.ok(job.id);
+ const job=await page.evaluate(async()=>{const projects=await(await fetch('/api/projects')).json(),p=await(await fetch(`/api/projects/${projects[0].id}`)).json();p.clips=p.clips.map(c=>({...c,start:0,duration:3600*p.fps}));return await(await fetch('/api/exports',{method:'POST',headers:{'Content-Type':'application/json','X-Reelume':'1'},body:JSON.stringify({project:p,settings:{resolution:720,quality:'standard',encoder:'libx264'}})})).json();});assert.ok(job.id);
  await closeWindow();await expect(page.locator('.project-home')).toBeVisible();
  const afterClose=await page.evaluate(async id=>(await(await fetch('/api/exports')).json()).find(j=>j.id===id),job.id);assert.ok(['queued','running'].includes(afterClose.status),JSON.stringify(afterClose));
- await page.evaluate(async id=>{const response=await fetch(`/api/exports/${id}/pause`,{method:'POST',headers:{'X-MyCut':'1'}});if(!response.ok)throw Error(await response.text());},job.id);
+ await page.evaluate(async id=>{const response=await fetch(`/api/exports/${id}/pause`,{method:'POST',headers:{'X-Reelume':'1'}});if(!response.ok)throw Error(await response.text());},job.id);
  await page.screenshot({path:'test-results/close-editor-home.png',fullPage:true});
  // Closing from the manager still closes the app when no jobs are running.
  let closed=app.waitForEvent('close');await app.evaluate(({BrowserWindow})=>{setTimeout(()=>BrowserWindow.getAllWindows()[0].close(),0);});await closed;app=undefined;

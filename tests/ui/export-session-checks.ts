@@ -2,7 +2,7 @@ import { expect, type Page } from '@playwright/test';
 import { makeClip, newProject, type ExportJob } from '../../shared/model';
 
 export async function checkExportSession(page:Page,closeEditor?:()=>Promise<void>){
- const url=(pathname:string)=>new URL(pathname,page.url()).href,headers={'X-MyCut':'1'},settings={resolution:720,quality:'standard',encoder:'libx264'};
+ const url=(pathname:string)=>new URL(pathname,page.url()).href,headers={'X-Reelume':'1'},settings={resolution:720,quality:'standard',encoder:'libx264'};
  const p=newProject();p.name='本次匯出與取消';p.clips=[makeClip({kind:'shape',trackId:'main',start:0,duration:9000})];
  const old={...newProject(),name:'不應出現的歷史匯出',clips:[makeClip({kind:'shape',trackId:'main',start:0,duration:15})]};
  const history=await(await page.request.post(url('/api/exports'),{headers,data:{project:old,settings}})).json() as ExportJob;

@@ -15,11 +15,12 @@ export class Library {
   private controllers=new Set<AbortController>();
   constructor(public root:string){}
   async init(){await fs.mkdir(path.join(this.root,'cache'),{recursive:true});await fs.mkdir(path.join(this.root,'media'),{recursive:true});try {this.records=JSON.parse(await fs.readFile(path.join(this.root,'library.json'),'utf8'));}catch(e:any){if(e.code!=='ENOENT')throw e;}for(const m of this.records){m.missing=!(await fs.stat(m.path).catch(()=>null));if(m.proxyStatus==='processing'||m.proxyStatus==='queued')m.proxyStatus='error';}}
+  async refresh(){await Promise.all(this.records.map(async m=>{const file=m.path;const missing=!(await fs.stat(file).catch(()=>null))?.isFile();if(m.path===file)m.missing=missing;}));return this.list();}
   list(){return this.records.map(({path:_,owned:__,...m})=>m);}
   get(id:string){const record=this.records.find(m=>m.id===id);if(!record)throw new Error('素材不存在');return record;}
   save(){this.chain=this.chain.catch(()=>{}).then(()=>atomicJson(path.join(this.root,'library.json'),this.records));return this.chain;}
   async import(file:string,owned=false,name=path.basename(file)){
-    const existing=this.records.find(m=>m.path===file);if(existing)return existing;
+    const existing=this.records.find(m=>m.path===file);if(existing){const stat=await fs.stat(file).catch(()=>null);existing.missing=!stat?.isFile();if(existing.missing)throw new Error('找不到原始素材，請重新選擇檔案或重新連結');await this.save();return existing;}
     const m=await this.prepare(file,owned,name);await this.addPrepared([m]);this.derive([m]);return m;
   }
   async prepare(file:string,owned=false,name=path.basename(file)):Promise<MediaRecord>{

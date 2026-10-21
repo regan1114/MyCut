@@ -30,7 +30,7 @@ export interface LyricProject {
   unmatched?: UnmatchedLyric[];
 }
 
-/** Validate MyCut's seconds-based exchange format. */
+/** Validate Reelume's seconds-based exchange format. */
 export function validateProject(value: unknown): LyricProject {
   const fail = (): never => {
     throw new Error('歌詞 Timeline JSON 格式或時間無效。');

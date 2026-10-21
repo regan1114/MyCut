@@ -1,3 +1,7 @@
+import { AiEditor } from './ai-edit';
+import { Storage } from './storage';
+import { importLogo } from './logos';
+import { VocalJobs } from './vocals';
 import { LyricsBridge } from './lyrics';
 import { insertTimedClips } from '../shared/placement';
 import express from 'express';
@@ -29,6 +33,7 @@ export async function startServer(options:{root?:string;port?:number;appRoot?:st
   const fontRoot=unpackedPath(path.join(appRoot,'public/fonts'));const fonts:FontInfo[]=JSON.parse(await fs.readFile(path.join(fontRoot,'manifest.json'),'utf8'));
   await fs.mkdir(path.join(root,'projects'),{recursive:true});const customFonts=new CustomFonts(root,fonts);await customFonts.init();const library=new Library(root);await library.init();const jobs=new Jobs(path.join(root,'exports'),library,fonts,fontRoot);await jobs.init();const projects=new Projects(root,library);const portable=new PortableProjects(library,projects,customFonts);const speech=new SpeechJobs(path.join(root,'captions'),library,appRoot);await speech.init();
   const lyrics=new LyricsBridge(path.join(root,'lyrics'),library,appRoot);
+  const vocals=new VocalJobs(path.join(root,'vocals'),library,projects,appRoot);await vocals.init();
   const rhythmControllers=new Set<AbortController>();
   const preferences=new Preferences(root,fonts);await preferences.init();
   const clipPresets=new ClipPresets(root);await clipPresets.init();
@@ -37,7 +42,7 @@ export async function startServer(options:{root?:string;port?:number;appRoot?:st
     const host=req.headers.host??'';if(!/^127\.0\.0\.1:\d+$/.test(host)&&!/^localhost:\d+$/.test(host))return res.status(403).json({error:'只接受本機連線'});
     const origin=req.headers.origin;const allowed=[`http://127.0.0.1:${port}`,`http://localhost:${port}`,'http://127.0.0.1:5173'];
     if(origin&&!allowed.includes(origin)||req.headers['sec-fetch-site']==='cross-site')return res.status(403).json({error:'不允許此來源'});
-    if(!['GET','HEAD'].includes(req.method)&&req.headers['x-mycut']!=='1')return res.status(403).json({error:'缺少本機應用請求標記'});
+    if(!['GET','HEAD'].includes(req.method)&&req.headers['x-reelume']!=='1'&&req.headers['x-mycut']!=='1')return res.status(403).json({error:'缺少本機應用請求標記'});
     res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");next();
   });
   app.use(express.json({limit:'16mb'}));
@@ -46,6 +51,13 @@ export async function startServer(options:{root?:string;port?:number;appRoot?:st
   app.post('/api/recordings',async(_req,res)=>{const rid=randomUUID();const file=path.join(root,'media',`${rid}.webm`);await fs.writeFile(file,'');recordings.set(rid,{file,seq:0,bytes:0});res.json({id:rid});});
   app.post('/api/recordings/:id/finish',async(req,res)=>{const rid=id(req.params.id);const recording=recordings.get(rid);if(!recording)throw new Error('錄音工作不存在');const file=path.join(root,'media',`${rid}.m4a`);await ffmpeg(['-i',recording.file,'-vn','-c:a','aac','-b:a','192k','-ar','48000',file]);const m=await library.import(file,true,`旁白 ${new Date().toLocaleString('zh-TW')}.m4a`);recordings.delete(rid);await fs.rm(recording.file,{force:true});res.json({media:library.list(),imported:[m.id]});});
   app.post('/api/recordings/:id/:seq',async(req,res)=>{const recording=recordings.get(id(req.params.id));if(!recording||Number(req.params.seq)!==recording.seq)throw new Error('錄音片段順序錯誤');let size=0;req.on('data',(chunk:Buffer)=>{size+=chunk.length;if(size>32*1024*1024)req.destroy(new Error('錄音片段過大'));});await pipeline(req,createWriteStream(recording.file,{flags:'a'}));recording.seq++;recording.bytes+=size;res.json({ok:true});});
+  const ai=new AiEditor(library);
+  app.post('/api/ai-edit/test',async(req,res)=>res.json(await ai.test(req.body)));
+  app.post('/api/ai-edit/plan',async(req,res)=>res.json(await ai.plan(req.body)));
+  app.post('/api/ai-edit/:id/cancel',(req,res)=>{ai.cancel(id(req.params.id));res.json({ok:true});});
+  const storage=new Storage(library,jobs);
+  app.get('/api/storage',async(_req,res)=>res.json(await storage.info()));
+  app.post('/api/storage/clear',async(_req,res)=>res.json(await storage.clear()));
   app.get('/api/health',async(_req,res)=>{const st=await fs.statfs(root);res.json({ok:true,platform:process.platform,arch:process.arch,encoders:availableEncoders(process.platform),ffmpeg:!!await fs.stat(ffmpegPath).catch(()=>null),fonts:fonts.length,freeBytes:st.bavail*st.bsize,root});});
   app.get('/api/fonts',(_req,res)=>res.json(fonts));
   app.get('/api/fonts/:id/file',(req,res)=>res.sendFile(customFonts.file(String(req.params.id))));
@@ -64,7 +76,11 @@ export async function startServer(options:{root?:string;port?:number;appRoot?:st
   app.get('/api/preferences',(_req,res)=>res.json(preferences.get()));
   app.put('/api/preferences',async(req,res)=>res.json(await preferences.save(req.body)));
   app.get('/api/media/:id/rhythm',async(req,res)=>{const controller=new AbortController();rhythmControllers.add(controller);res.on('close',()=>controller.abort());try{res.json(await audioFeatures(library,id(req.params.id),controller.signal,req.query.spectrum==='1'));}finally{rhythmControllers.delete(controller);}});
-  app.get('/api/media',(_req,res)=>res.json(library.list()));
+  app.get('/api/vocals',(_req,res)=>res.json(vocals.list().filter(j=>!j.dismissed)));
+  app.post('/api/vocals',async(req,res)=>res.status(202).json(await vocals.create(id(req.body.projectId),id(req.body.mediaId))));
+  app.post('/api/vocals/:id/cancel',async(req,res)=>res.json(await vocals.cancel(id(req.params.id))));
+  app.post('/api/vocals/:id/dismiss',async(req,res)=>{await vocals.dismiss(id(req.params.id));res.json({ok:true});});
+  app.get('/api/media',async(_req,res)=>res.json(await library.refresh()));
   app.post('/api/media/:id/proxy',async(req,res)=>{await library.proxy(id(req.params.id));res.json({ok:true});});
   app.post('/api/media/upload',async(req,res)=>{
     const bb=busboy({headers:req.headers,defParamCharset:'utf8',limits:{files:32,fileSize:128*1024**3}});const imports:Promise<unknown>[]=[];
@@ -75,6 +91,14 @@ export async function startServer(options:{root?:string;port?:number;appRoot?:st
   app.get('/media/:id/:variant',async(req,res)=>{const m=library.get(id(req.params.id));const variant=req.params.variant;const file=variant==='original'?m.path:variant==='thumbnail'?path.join(root,'cache',`${m.id}.jpg`):variant==='proxy'&&m.proxy?path.join(root,'cache',`${m.id}.proxy.mp4`):null;if(!file)return res.status(404).end();res.sendFile(file);});
   app.get('/api/portable',(_req,res)=>res.json(portable.status));
   app.post('/api/portable/cancel',(_req,res)=>{portable.cancel();res.json({ok:true});});
+  app.post('/api/projects/:id/logos',async(req,res)=>{
+    const projectId=id(req.params.id);await projects.read(projectId);
+    const bb=busboy({headers:req.headers,defParamCharset:'utf8',limits:{files:1,fileSize:32*1024**2,fields:0}});let upload:Promise<{bytes:Buffer;name:string}>|undefined,limited=false;
+    bb.on('filesLimit',()=>{limited=true;});bb.on('file',(_field,stream,info)=>{let truncated=false;stream.on('limit',()=>{truncated=true;});upload=(async()=>{const chunks:Buffer[]=[];for await(const chunk of stream)chunks.push(Buffer.from(chunk));if(truncated)throw new Error('Logo 圖片必須小於 32 MB');return {bytes:Buffer.concat(chunks),name:info.filename};})();upload.catch(()=>{});});
+    await new Promise<void>((resolve,reject)=>{bb.on('finish',resolve);bb.on('error',reject);req.on('aborted',()=>{bb.destroy(new Error('Logo 匯入已中斷'));reject(new Error('Logo 匯入已中斷'));});req.pipe(bb);});
+    if(limited)throw new Error('每次請選擇一個 Logo');if(!upload)throw new Error('請選擇 Logo 圖片');const file=await upload;
+    const logo=await importLogo(library,projectId,file.bytes,file.name);await projects.addLogo(projectId,logo.id);res.json({media:library.list(),importedId:logo.id});
+  });
   app.get('/api/projects',async(req,res)=>res.json(await projects.list(req.query.trash==='1')));
   app.post('/api/projects',async(req,res)=>res.status(201).json(await projects.create(req.body)));
   app.put('/api/projects/:id',async(req,res)=>{if(req.body.id!==id(req.params.id))throw new Error('專案 ID 不一致');const p=await projects.save(req.body);res.json({savedAt:p.updatedAt});});
@@ -115,8 +139,8 @@ export async function startServer(options:{root?:string;port?:number;appRoot?:st
   app.get('/{*splat}',(req,res)=>{if(req.path.startsWith('/api/')||req.path.startsWith('/media/'))return res.status(404).json({error:'找不到此資源'});res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");res.sendFile(path.join(appRoot,'dist/index.html'));});
   app.use((e:any,_req:express.Request,res:express.Response,_next:express.NextFunction)=>{if(res.headersSent)return;res.status(e instanceof z.ZodError?400:500).json({error:e instanceof z.ZodError?e.issues.map(i=>i.message).join('；'):e.message??'處理失敗'});});
   const server=await new Promise<ReturnType<typeof app.listen>>((resolve,reject)=>{const s=app.listen(port,'127.0.0.1',(error?:Error)=>error?reject(error):resolve(s));s.once('error',reject);});port=(server.address() as {port:number}).port;
-  return {server,port,library,jobs,projects,speech,portable,root,close:()=>{lyrics.close();portable.cancel();for(const controller of rhythmControllers)controller.abort();library.close();jobs.close();speech.close();server.close();}};
+  return {server,port,ai,library,jobs,projects,speech,portable,root,close:()=>{ai.close();vocals.close();lyrics.close();portable.cancel();for(const controller of rhythmControllers)controller.abort();library.close();jobs.close();speech.close();server.close();}};
 }
 if(process.argv[1]&&fileURLToPath(import.meta.url)===path.resolve(process.argv[1])){
-  const service=await startServer();console.log(`MyCut running at http://127.0.0.1:${service.port}`);for(const signal of ['SIGINT','SIGTERM'] as const)process.on(signal,()=>{service.close();process.exit(0);});
+  const service=await startServer();console.log(`Reelume running at http://127.0.0.1:${service.port}`);for(const signal of ['SIGINT','SIGTERM'] as const)process.on(signal,()=>{service.close();process.exit(0);});
 }

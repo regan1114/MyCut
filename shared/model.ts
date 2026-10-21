@@ -11,7 +11,7 @@ const frame = z.number().int().min(0).max(60 * 60 * 24 * 60);
 export const KeyframeSchema = z.object({ frame, x: z.number().min(-2).max(2), y: z.number().min(-2).max(2), scale: z.number().min(0.05).max(4), opacity: z.number().min(0).max(1) });
 export const ClipSchema = z.object({
   id: z.string().uuid(), trackId: z.string().min(1).max(100), kind: z.enum(['video', 'image', 'audio', 'text', 'shape', 'effect']),
-  mediaId: z.string().uuid().optional(), name: z.string().max(300), start: frame, duration: frame.min(1),
+  mediaId: z.string().uuid().optional(), logo: z.boolean().optional(), name: z.string().max(300), start: frame, duration: frame.min(1),
   groupId: z.string().uuid().optional(), linkId: z.string().uuid().optional(), effects: EffectsSchema.optional(),
   captionJobId: z.string().uuid().optional(), captionCueId: z.string().min(1).max(100).optional(), captionType: z.enum(['captions','lyrics']).optional(),
   sourceIn: z.number().min(0).max(86400).default(0), speed: z.number().min(0.25).max(4).default(1),
@@ -35,6 +35,7 @@ export const ProjectSchema = z.object({
   version: z.literal(1), id: z.string().uuid(), name: z.string().min(1).max(120), width: z.number().int().min(160).max(4096), height: z.number().int().min(160).max(4096),
   fps: FpsSchema, background: hex.default('#101418'), tracks: z.array(TrackSchema).min(1).max(32), clips: z.array(ClipSchema).max(20000),
   mediaIds: z.array(z.string().uuid()).max(20000).default([]),
+  logoMediaIds: z.array(z.string().uuid()).max(20000).default([]),
   effects: EffectsSchema.default({}),
   pendingLyrics: z.array(z.object({
     jobId: z.string().uuid(), mode: z.enum(['captions', 'lyrics']),
@@ -60,14 +61,14 @@ export type Project = z.infer<typeof ProjectSchema>;
 export type Keyframe = z.infer<typeof KeyframeSchema>;
 export type Media = { id:string; name:string; kind:'video'|'audio'|'image'; duration:number; width:number; height:number; size:number; hasAudio:boolean; thumbnail?:string; proxy?:string; proxyStatus?:'queued'|'processing'|'ready'|'error'; waveform?:number[]; missing?:boolean; revision?:number };
 export type ExportSettings = { resolution:720|1080|2160; quality:'standard'|'high'; encoder:'libx264'|'h264_videotoolbox' };
-export type ExportJob = { id:string; name:string; status:'queued'|'running'|'paused'|'failed'|'completed'; progress:number; completedSegments:number; totalSegments:number; duration:number; createdAt:string; error?:string; output?:string; settings:ExportSettings };
+export type ExportJob = { id:string; name:string; status:'queued'|'running'|'paused'|'failed'|'completed'; progress:number; completedSegments:number; totalSegments:number; duration:number; createdAt:string; error?:string; output?:string; destination?:string; savedPath?:string; settings:ExportSettings };
 export type FontInfo = { id:string; family:string; label:string; language:'繁體中文'|'Latin'|'自訂'; category:string; file:string; license:string; source:string; custom?:boolean; missing?:boolean };
 
 export function newProject(): Project { return {version:1,id:uid(),name:projectDateName(),width:1920,height:1080,fps:30,background:'#101418',tracks:[
   {id:'text',name:'文字與字幕',kind:'text',muted:false,hidden:false,locked:false},
   {id:'main',name:'影片與圖片',kind:'video',muted:false,hidden:false,locked:false},
   {id:'music',name:'人聲與音樂',kind:'audio',muted:false,hidden:false,locked:false},
-],clips:[],mediaIds:[],effects:defaultEffects(),markers:[],updatedAt:new Date().toISOString()}; }
+],clips:[],mediaIds:[],logoMediaIds:[],effects:defaultEffects(),markers:[],updatedAt:new Date().toISOString()}; }
 export function makeClip(partial: Partial<Clip> & Pick<Clip,'kind'|'trackId'|'start'|'duration'>): Clip { return ClipSchema.parse({id:uid(),name:partial.kind === 'text' ? '文字' : '新片段',...partial}); }
 export const endFrame = (p:Project) => Math.max(0,...p.clips.map(c=>c.start+c.duration));
 export const seconds = (frame:number, fps:number) => frame / fps;

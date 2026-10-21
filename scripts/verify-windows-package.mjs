@@ -10,7 +10,7 @@ const app=path.resolve('release/win-unpacked'),unpacked=path.join(app,'resources
 const archive=path.join(app,'resources/app.asar');
 const appManifest=JSON.parse(asar.extractFile(archive,'package.json').toString());
 assert.equal(appManifest.version,JSON.parse(await fs.readFile('package.json','utf8')).version);
-const binaries=['MyCut.exe','resources/app.asar.unpacked/node_modules/ffmpeg-static/ffmpeg.exe','resources/app.asar.unpacked/node_modules/ffprobe-static/bin/win32/x64/ffprobe.exe','resources/app.asar.unpacked/resources/speech/win32-x64/whisper-cli.exe'];
+const binaries=['Reelume.exe','resources/app.asar.unpacked/node_modules/ffmpeg-static/ffmpeg.exe','resources/app.asar.unpacked/node_modules/ffprobe-static/bin/win32/x64/ffprobe.exe','resources/app.asar.unpacked/resources/speech/win32-x64/whisper-cli.exe'];
 async function pe(file){const b=await fs.readFile(file);assert.equal(b.toString('ascii',0,2),'MZ',file);const offset=b.readUInt32LE(0x3c);assert.equal(b.toString('ascii',offset,offset+4),'PE\0\0');assert.equal(b.readUInt16LE(offset+4),0x8664,`Expected x64 PE: ${file}`);return b;}
 for(const file of binaries)await pe(path.join(app,file));
 const nativeFiles=[];

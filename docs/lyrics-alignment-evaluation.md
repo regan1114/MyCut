@@ -26,6 +26,6 @@ npm run lyrics-aligner:evaluate -- --manifest /path/to/corpus.json --output /pat
 - **起訖誤差**：成功定位句子的人工時間與引擎時間之絕對差，分別回報中位數、P90 和最大值。
 - **within100/250/500ms**：起點與終點都在該誤差範圍內的句數。報告另提供 coverage，避免只看已成功定位的句子。
 - **逐字誤差**：僅比較人工與引擎輸出字詞數量、文字順序完全一致的句子；其他句子會記為 tokenization mismatch，不混入誤差值。
-- **realTimeFactor**：對齊耗時除以音訊秒數；不含載入音訊到 MyCut 時間軸的操作時間。
+- **realTimeFactor**：對齊耗時除以音訊秒數；不含載入音訊到 Reelume 時間軸的操作時間。
 
 先建立包含曲風、人聲型態與語言差異的小型基準，再逐步擴充。不要用同一首歌反覆調參後的結果代表泛化準確度，也不要把模型信心值當成已校準的正確機率。

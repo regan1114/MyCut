@@ -10,7 +10,7 @@ test('real editing, fonts, undo, trim, project persistence, export form and keyb
  // Seek to a point with both title and background, exercising loaded local CJK fonts.
  await page.keyboard.press('ArrowRight');await page.keyboard.press('Shift+ArrowRight');await page.keyboard.press('Shift+ArrowRight');
  await page.getByRole('button',{name:'文字',exact:true}).click();await page.getByRole('button',{name:'新增文字',exact:true}).click();
- await page.getByRole('textbox',{name:'文字內容',exact:true}).fill('測試字幕\nMyCut');await expect(page.getByRole('textbox',{name:'文字內容',exact:true})).toHaveValue('測試字幕\nMyCut');
+ await page.getByRole('textbox',{name:'文字內容',exact:true}).fill('測試字幕\nReelume');await expect(page.getByRole('textbox',{name:'文字內容',exact:true})).toHaveValue('測試字幕\nReelume');
  await chooseFont(page,'huninn');await fontIs(page,'huninn');
  await page.screenshot({path:'test-results/editor-text.png',fullPage:true});
  await page.getByRole('button',{name:/^複製片段（/}).click();await expect(page.locator('.timeline-footer')).toContainText('5 個片段');
@@ -38,5 +38,5 @@ test('recording streams to disk, becomes valid audio, supports ranges and wavefo
  const list=await(await page.request.get('/api/media')).json();const audio=list.find((m:any)=>m.kind==='audio');expect(audio.duration).toBeGreaterThan(0);expect(audio.hasAudio).toBe(true);
  const range=await page.request.get(`/media/${audio.id}/original`,{headers:{Range:'bytes=0-31'}});expect(range.status()).toBe(206);expect((await range.body()).length).toBe(32);
  await expect.poll(async()=>{const list=await(await page.request.get('/api/media')).json();return list.find((m:any)=>m.id===audio.id)?.waveform?.length;}).toBe(600);
- const blocked=await page.request.post('/api/recordings',{headers:{Origin:'https://example.invalid','X-MyCut':'1'}});expect(blocked.status()).toBe(403);
+ const blocked=await page.request.post('/api/recordings',{headers:{Origin:'https://example.invalid','X-Reelume':'1'}});expect(blocked.status()).toBe(403);
 });

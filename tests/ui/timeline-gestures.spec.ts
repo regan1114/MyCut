@@ -8,7 +8,7 @@ for(const start of [0,600])test(`first image drag after zoom keeps the scrolled 
 
 test('subtitle drags outside text lanes keep the source lane and never add tracks',async({page})=>{
   const p=newProject();p.name='字幕拖離軌道';p.clips=[makeClip({kind:'text',trackId:'text',start:60,duration:60,text:'保留原軌道'})];
-  await page.request.put(`/api/projects/${p.id}`,{headers:{'X-MyCut':'1'},data:p});await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
+  await page.request.put(`/api/projects/${p.id}`,{headers:{'X-Reelume':'1'},data:p});await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
   const moving=page.locator('.clip-text'),source=page.locator('[data-track="text"]');
   for(let attempt=0;attempt<3;attempt++){
     const box=(await moving.boundingBox())!,origin=(await source.boundingBox())!,video=(await page.locator('[data-track="main"]').boundingBox())!;
@@ -28,7 +28,7 @@ test('subtitle drags outside text lanes keep the source lane and never add track
 
 test('a subtitle can return to its original lane after one deliberate insertion, and cancel adds nothing',async({page})=>{
   const p=newProject();p.name='字幕拖回原軌';p.clips=[makeClip({kind:'text',trackId:'text',start:60,duration:60,text:'拖回這句'})];
-  await page.request.put(`/api/projects/${p.id}`,{headers:{'X-MyCut':'1'},data:p});await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
+  await page.request.put(`/api/projects/${p.id}`,{headers:{'X-Reelume':'1'},data:p});await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
   const source=page.locator('[data-track="text"]'),moving=page.locator('.clip-text');
   let box=(await moving.boundingBox())!,lane=(await source.boundingBox())!;
   await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();
@@ -53,7 +53,7 @@ test('a subtitle can return to its original lane after one deliberate insertion,
 test('marker clicks seek exactly, cancel stops scrubbing, and leaving editor removes gesture listeners', async ({ page }) => {
   const p = newProject(); p.name = '時間軸手勢清理'; p.clips = [makeClip({ kind: 'text', trackId: 'text', start: 0, duration: 900, text: '手勢驗證' })];
   p.markers = [{ id: uid(), frame: 300, name: '十秒標記' }];
-  await page.request.put(`/api/projects/${p.id}`, { headers: { 'X-MyCut': '1' }, data: p });
+  await page.request.put(`/api/projects/${p.id}`, { headers: { 'X-Reelume': '1' }, data: p });
   await page.goto('/'); await page.getByRole('button', { name: `開啟 ${p.name}`, exact: true }).click();
   const marker = page.getByRole('button', { name: '十秒標記（雙擊刪除）' });
   await marker.click(); await expect(page.locator('.time-display b')).toHaveText('00:00:10:00');
@@ -71,7 +71,7 @@ test('marker clicks seek exactly, cancel stops scrubbing, and leaving editor rem
 
 test('subtitle previews snap across tracks, release on continued movement and commit only on drop',async({page})=>{
   const p=newProject();p.name='字幕預覽磁吸';p.clips=[makeClip({kind:'text',trackId:'text',start:30,duration:60,text:'移動字幕'}),makeClip({kind:'shape',trackId:'main',start:180,duration:90,name:'對齊參考'})];
-  await page.request.put(`/api/projects/${p.id}`,{headers:{'X-MyCut':'1'},data:p});await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
+  await page.request.put(`/api/projects/${p.id}`,{headers:{'X-Reelume':'1'},data:p});await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
   const clip=page.locator('.clip-text'),guide=page.locator('.timeline-snap-guide'),preview=page.locator('.timeline-drag-preview'),box=(await clip.boundingBox())!;
   const x=box.x+box.width/2,y=box.y+box.height/2,targetX=x+165;
   await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(targetX+4,y);
@@ -85,7 +85,7 @@ test('subtitle previews snap across tracks, release on continued movement and co
 
 test('playback, jumps and zoom keep the playhead in view, and returning to the start scrolls back', async ({ page }) => {
   const p=newProject();p.name='播放頭跟隨';p.clips=[makeClip({kind:'text',trackId:'text',start:0,duration:3600,text:'長時間字幕'})];
-  await page.request.put(`/api/projects/${p.id}`,{headers:{'X-MyCut':'1'},data:p});
+  await page.request.put(`/api/projects/${p.id}`,{headers:{'X-Reelume':'1'},data:p});
   await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
   const scroll=page.locator('.timeline-scroll');const box=(await scroll.boundingBox())!;
   await page.mouse.click(box.x+box.width*.8-20,box.y+12);
@@ -104,7 +104,7 @@ test('playback, jumps and zoom keep the playhead in view, and returning to the s
 
 test('text overlap and vertical drags add lanes that disappear after moving back or deleting',async({page})=>{
   const p=newProject();p.name='動態字幕軌道';p.clips=[makeClip({kind:'text',trackId:'text',start:0,duration:60,text:'第一句'}),makeClip({kind:'text',trackId:'text',start:90,duration:60,text:'移動這句'})];
-  await page.request.put(`/api/projects/${p.id}`,{headers:{'X-MyCut':'1'},data:p});await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
+  await page.request.put(`/api/projects/${p.id}`,{headers:{'X-Reelume':'1'},data:p});await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
   await page.getByRole('button',{name:'磁吸對齊',exact:true}).click();
   const moving=page.locator('.clip-text').filter({hasText:'移動這句'}),headers=page.locator('.track-header').filter({hasText:'文字與字幕'});
   const drag=async(dx:number,y?:number)=>{const b=(await moving.boundingBox())!;await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.mouse.move(b.x+b.width/2+dx,y??b.y+b.height/2,{steps:8});await page.mouse.up();};

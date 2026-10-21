@@ -98,7 +98,7 @@ test('missing bundled engine is reported before audio extraction', async (t) => 
     throw new TypeError('fetch failed');
   });
   try {
-    await assert.rejects(unavailable.create(f.project, { lyrics: '月滿' }), /找不到 MyCut 對齊模型/);
+    await assert.rejects(unavailable.create(f.project, { lyrics: '月滿' }), /找不到 Reelume 對齊模型/);
     assert.equal(fetchCount, 0, 'alignment must never call LyricFlow or another HTTP service');
     assert.deepEqual(
       await fs.readdir(path.join(f.root, 'lyrics-missing')).catch(() => []),
@@ -113,7 +113,7 @@ test('missing bundled engine is reported before audio extraction', async (t) => 
   }
 });
 
-test("known lyrics run in MyCut's local worker and return the seconds timeline without ASR", async () => {
+test("known lyrics run in Reelume's local worker and return the seconds timeline without ASR", async () => {
   const f = await fixture();
   try {
     const job = await f.bridge.create(f.project, {
@@ -197,7 +197,7 @@ test('a changed source cannot apply a completed local alignment', async () => {
   }
 });
 
-test('cancellation kills MyCut local alignment and leaves no late result', async () => {
+test('cancellation kills Reelume local alignment and leaves no late result', async () => {
   const f = await fixture(2000);
   try {
     const job = await f.bridge.create(f.project, { lyrics: '月滿' });

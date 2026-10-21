@@ -8,7 +8,7 @@ test('new subtitles start at the playhead in a gap or overlap and retain unified
   p.tracks.unshift({ ...p.tracks[0], id: 'old-lyrics', name: '自動歌詞' });
   p.clips = [makeClip({ kind: 'text', trackId: 'old-lyrics', start: 0, duration: 60, text: '前一句' }),
     makeClip({ kind: 'text', trackId: 'old-lyrics', start: 300, duration: 60, text: '後一句' })];
-  await page.request.put(`/api/projects/${p.id}`, { headers: { 'X-MyCut': '1' }, data: p });
+  await page.request.put(`/api/projects/${p.id}`, { headers: { 'X-Reelume': '1' }, data: p });
   await page.goto('/');
   await page.getByRole('button', { name: `開啟 ${p.name}`, exact: true }).click();
   await page.getByRole('navigation').getByRole('button', { name: '字幕', exact: true }).click();
@@ -40,7 +40,7 @@ test('new subtitles start at the playhead in a gap or overlap and retain unified
 
 test('text styles append after the track tail; compact font properties update every clip on that track',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  const p=newProject();p.name='文字接續與字型屬性';await page.request.put(`/api/projects/${p.id}`,{headers:{'X-MyCut':'1'},data:p});
+  const p=newProject();p.name='文字接續與字型屬性';await page.request.put(`/api/projects/${p.id}`,{headers:{'X-Reelume':'1'},data:p});
   await page.goto('/');await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
   const nav=page.getByRole('navigation');await expect(nav.getByRole('button',{name:'字型',exact:true})).toHaveCount(0);
   await nav.getByRole('button',{name:'文字',exact:true}).click();await expect(page.locator('.preset-title,.preset-subtitle')).toHaveCount(0);

@@ -1,0 +1,40 @@
+{
+  "resolution": 1080,
+  "fps": 30,
+  "clipSeconds": 3,
+  "quality": "high",
+  "encoder": "libx264",
+  "runs": 3,
+  "cases": [
+    {
+      "kind": "plain",
+      "beforeSeconds": 3.382144767,
+      "afterSeconds": 2.0723678396666663,
+      "reductionPercent": 38.726223079301256,
+      "meanSSIM": 0.9999999777777778,
+      "comparedFrames": 90
+    },
+    {
+      "kind": "effects",
+      "beforeSeconds": 4.910089065999999,
+      "afterSeconds": 4.1139245703333325,
+      "reductionPercent": 16.214868711439934,
+      "meanSSIM": 0.9999996444444444,
+      "comparedFrames": 90
+    },
+    {
+      "kind": "karaoke",
+      "beforeSeconds": 4.268568914000001,
+      "afterSeconds": 3.0972831169999964,
+      "reductionPercent": 27.43977713838556,
+      "meanSSIM": 0.9999999333333334,
+      "comparedFrames": 90
+    }
+  ],
+  "platform": "darwin",
+  "arch": "x64",
+  "logicalCPUs": 16,
+  "beforeVersion": "0.6.30",
+  "afterVersion": "0.6.31",
+  "scope": "Single 3-second segment rendering; excludes final MP4 assembly. Actual project timings vary."
+}

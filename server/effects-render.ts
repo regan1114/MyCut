@@ -9,7 +9,7 @@ import type { Project, ExportSettings, FontInfo } from '../shared/model';
 import type { Library } from './library';
 import { projectFeatures } from './rhythm';
 import { registerCanvasFonts } from './canvas-fonts';
-import { ffmpeg, ffmpegPath } from './native';
+import { ffmpeg, ffmpegPath, exportThreads } from './native';
 
 function processDone(child:ChildProcessWithoutNullStreams,signal?:AbortSignal){
   let error='';child.stderr.on('data',(b:Buffer)=>{error=(error+b.toString()).slice(-5000);});
@@ -28,7 +28,7 @@ export async function renderEffectStream(args:string[],p:Project,library:Library
   const source=createCanvas(W,H),output=createCanvas(W,H),scratch=createCanvas(W,H);const sc=source.getContext('2d'),ctx=output.getContext('2d');const pixels=sc.createImageData(W,H);const bytes=Buffer.from(pixels.data.buffer,pixels.data.byteOffset,pixels.data.byteLength);
   const producer=spawn(ffmpegPath,['-hide_banner','-nostdin','-y','-threads','2','-filter_complex_threads','1',...args,'-map','[vout]','-an','-pix_fmt','rgba','-f','rawvideo','-threads','1','-t',String(duration),'pipe:1','-map','[aout]','-vn','-c:a','pcm_s16le','-ar','48000','-ac','2','-t',String(duration),audio],{stdio:'pipe',windowsHide:true});
   const encoderArgs=['-hide_banner','-nostdin','-y','-threads','2','-f','rawvideo','-pixel_format','rgba','-video_size',`${W}x${H}`,'-framerate',String(p.fps),'-i','pipe:0','-an','-c:v',settings.encoder];
-  if(settings.encoder==='libx264')encoderArgs.push('-preset','fast','-crf',settings.quality==='high'?'18':'23','-threads','2');
+  if(settings.encoder==='libx264')encoderArgs.push('-preset','fast','-crf',settings.quality==='high'?'18':'23','-threads',String(exportThreads));
   else encoderArgs.push('-b:v',`${settings.resolution===2160?40:settings.resolution===1080?12:6}M`,'-allow_sw','1');
   encoderArgs.push('-pix_fmt','yuv420p','-frames:v',String(total),'-video_track_timescale',String(p.fps*1000),video);
   const encoder=spawn(ffmpegPath,encoderArgs,{stdio:'pipe',windowsHide:true});encoder.stdout.resume();producer.stdin.end();
@@ -56,7 +56,8 @@ export async function renderEffectStream(args:string[],p:Project,library:Library
           if(frames>=total)throw new Error('特效來源影格數超出預期');
           sc.putImageData(pixels,0,0);const time=(from+frames)/p.fps;
           ctx.clearRect(0,0,W,H);ctx.drawImage(source,0,0);
-          for(const effects of effectLayersAt(p,from+frames)){sc.clearRect(0,0,W,H);sc.drawImage(output,0,0);renderEffects(ctx as unknown as CanvasRenderingContext2D,source as unknown as CanvasImageSource,W,H,time,effects,sampleRhythm(p,time,features,rhythmEffectSpeed(effects)),scratch.getContext('2d') as unknown as CanvasRenderingContext2D);}
+          const layers=effectLayersAt(p,from+frames);
+          for(let i=0;i<layers.length;i++){const effects=layers[i];if(i>0){sc.clearRect(0,0,W,H);sc.drawImage(output,0,0);}renderEffects(ctx as unknown as CanvasRenderingContext2D,source as unknown as CanvasImageSource,W,H,time,effects,sampleRhythm(p,time,features,rhythmEffectSpeed(effects)),scratch.getContext('2d') as unknown as CanvasRenderingContext2D);}
           const raw=output.data();await new Promise<void>((resolve,reject)=>encoder.stdin.write(raw,error=>error?reject(error):resolve()));
           frames++;used=0;options.onProgress?.(frames/p.fps*.95);
         }

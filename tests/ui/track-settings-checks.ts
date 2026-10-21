@@ -10,7 +10,7 @@ import path from 'node:path';
 
 const url=(page:Page,pathname:string)=>new URL(pathname,page.url()).href;
 async function open(page:Page,p:Project){
-  expect((await page.request.put(url(page,`/api/projects/${p.id}`),{headers:{'X-MyCut':'1'},data:p})).ok()).toBeTruthy();
+  expect((await page.request.put(url(page,`/api/projects/${p.id}`),{headers:{'X-Reelume':'1'},data:p})).ok()).toBeTruthy();
   await page.goto(url(page,'/'));await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
 }
 async function saved(page:Page,p:Project):Promise<Project>{
@@ -65,9 +65,9 @@ export async function checkMediaTracks(page:Page){
     const file=path.join(root,'video.mp4'),audio=path.join(root,'audio.wav'),ffmpeg=createRequire(import.meta.url)('ffmpeg-static');
     await promisify(execFile)(ffmpeg,['-hide_banner','-y','-f','lavfi','-i','testsrc2=size=160x90:rate=30','-f','lavfi','-i','sine=frequency=440:sample_rate=48000','-t','6','-c:v','libx264','-preset','ultrafast','-c:a','aac',file]);
     await promisify(execFile)(ffmpeg,['-hide_banner','-y','-f','lavfi','-i','sine=frequency=220:duration=6',audio]);
-    const upload=async(file:string,mimeType:string)=>{const response=await page.request.post(url(page,'/api/media/upload'),{headers:{'X-MyCut':'1'},multipart:{file:{name:path.basename(file),mimeType,buffer:await fs.readFile(file)}}});expect(response.ok()).toBeTruthy();return (await response.json()).imported[0] as string;};
+    const upload=async(file:string,mimeType:string)=>{const response=await page.request.post(url(page,'/api/media/upload'),{headers:{'X-Reelume':'1'},multipart:{file:{name:path.basename(file),mimeType,buffer:await fs.readFile(file)}}});expect(response.ok()).toBeTruthy();return (await response.json()).imported[0] as string;};
     const videoId=await upload(file,'video/mp4'),audioId=await upload(audio,'audio/wav');
-    const demo=await(await page.request.post(url(page,'/api/demo'),{headers:{'X-MyCut':'1'}})).json(),imageId=demo.project.clips.find((c:any)=>c.kind==='image').mediaId;
+    const demo=await(await page.request.post(url(page,'/api/demo'),{headers:{'X-Reelume':'1'}})).json(),imageId=demo.project.clips.find((c:any)=>c.kind==='image').mediaId;
     const p=newProject();p.name=`媒體軌道檢查 ${uid().slice(0,6)}`;p.mediaIds=[videoId,audioId,imageId];
     p.clips=[makeClip({kind:'video',mediaId:videoId,trackId:'main',start:0,duration:60,name:'影片'}),makeClip({kind:'image',mediaId:imageId,trackId:'main',start:90,duration:60,name:'圖片'}),makeClip({kind:'audio',mediaId:audioId,trackId:'music',start:0,duration:60,name:'聲音一'}),makeClip({kind:'audio',mediaId:audioId,trackId:'music',start:90,duration:60,name:'聲音二'})];
     await open(page,p);await page.getByRole('button',{name:'磁吸對齊',exact:true}).click();

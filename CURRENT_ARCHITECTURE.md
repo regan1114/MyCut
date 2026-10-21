@@ -1,14 +1,14 @@
-# 現有架構盤點：MyCut 與 LyricFlow
+# 現有架構盤點：Reelume 與 LyricFlow
 
-盤點日期：2026-09-29。MyCut 基準 commit：`0414dc6`；LyricFlow：`60b2ef9`。兩邊開始盤點時 Git 工作區皆無修改。
+盤點日期：2026-09-29。Reelume 基準 commit：`0414dc6`；LyricFlow：`60b2ef9`。兩邊開始盤點時 Git 工作區皆無修改。
 
-2026-09-30 更新：這份文件是兩個專案整合前的歷史架構盤點。MyCut 原稿對齊現已使用安裝包內的本機引擎；執行時不呼叫 LyricFlow、不共用 Python 服務，也不安裝 LyricFlow 的 npm package。現況以 `LYRICS_ENGINE_INTEGRATION.md` 為準。
+2026-09-30 更新：這份文件是兩個專案整合前的歷史架構盤點。Reelume 原稿對齊現已使用安裝包內的本機引擎；執行時不呼叫 LyricFlow、不共用 Python 服務，也不安裝 LyricFlow 的 npm package。現況以 `LYRICS_ENGINE_INTEGRATION.md` 為準。
 
 本文件記錄當時現況；原始整合設計見 [LYRICS_ENGINE_PLAN.md](LYRICS_ENGINE_PLAN.md)。2026-09-29 盤點交付只完成 Step 1、Step 2，當時尚未實作歌曲精準對齊。
 
 ## 1. 專案範圍與確認結果
 
-| 項目 | MyCut | 音樂視覺化工具 |
+| 項目 | Reelume | 音樂視覺化工具 |
 | --- | --- | --- |
 | 本機位置 | `/Users/regan/Desktop/ＭyCut` | `/Users/regan/Desktop/lyric_flow` |
 | 身分 | `mycut` 0.6.11 | LyricFlow；前端 package 名稱 `resonance-vue` |
@@ -20,11 +20,11 @@
 | 開發服務 | 前端 5173，Express 預設 4318 | Vite `/api` 代理至 Flask 8080 |
 | 正式服務 | Electron 啟動 Express，動態 loopback port | Flask 8080 提供 `web/dist` 與 API |
 
-LyricFlow 的 [AGENTS.md](../lyric_flow/AGENTS.md)、[ARCHITECTURE.md](../lyric_flow/ARCHITECTURE.md) 與實際 Vue 程式一致，確認它包含由 `video_visual` 整合的音樂視覺化工具。MyCut 沒有 Vue，也沒有 Python 後端；不能依需求示意圖把它整套遷移為 Vue。
+LyricFlow 的 [AGENTS.md](../lyric_flow/AGENTS.md)、[ARCHITECTURE.md](../lyric_flow/ARCHITECTURE.md) 與實際 Vue 程式一致，確認它包含由 `video_visual` 整合的音樂視覺化工具。Reelume 沒有 Vue，也沒有 Python 後端；不能依需求示意圖把它整套遷移為 Vue。
 
-掃描涵蓋兩個 Git 專案的第一方程式、設定、安裝／封裝腳本與測試清單，並追蹤下述字幕、播放、儲存、辨識與匯出路徑。MyCut 共 329 個追蹤檔案，其中 107 個程式／測試／樣式／腳本檔；LyricFlow 共 227 個，其中 156 個。這是架構與整合邊界盤點，不是所有特效演算法的逐行正確性審查。`node_modules`、vendor、模型二進位、生成的 dist／release 與私人歌曲不列為第一方程式審查。
+掃描涵蓋兩個 Git 專案的第一方程式、設定、安裝／封裝腳本與測試清單，並追蹤下述字幕、播放、儲存、辨識與匯出路徑。Reelume 共 329 個追蹤檔案，其中 107 個程式／測試／樣式／腳本檔；LyricFlow 共 227 個，其中 156 個。這是架構與整合邊界盤點，不是所有特效演算法的逐行正確性審查。`node_modules`、vendor、模型二進位、生成的 dist／release 與私人歌曲不列為第一方程式審查。
 
-## 2. MyCut 的執行與資料流
+## 2. Reelume 的執行與資料流
 
 ```mermaid
 flowchart LR
@@ -128,7 +128,7 @@ word.end       = (clip.start + word.end   - karaoke.offset) / fps
 | `/api/media/*`、`/media/:id/:variant` | 素材上傳、代理、原始媒體 |
 | `/api/exports/*` | MP4 分段工作與檔案下載 |
 
-Express 只接受 loopback Host；檢查 Origin／Fetch Metadata；非 GET／HEAD 要求 `X-MyCut: 1`。CSP `connect-src 'self'` 表示新 AI 服務應由 Express 轉接，不能只在 React 寫 `fetch('http://127.0.0.1:8765')`。
+Express 只接受 loopback Host；檢查 Origin／Fetch Metadata；非 GET／HEAD 要求 `X-Reelume: 1`。CSP `connect-src 'self'` 表示新 AI 服務應由 Express 轉接，不能只在 React 寫 `fetch('http://127.0.0.1:8765')`。
 
 [Preview.tsx](src/components/Preview.tsx) 用 requestAnimationFrame 推進影格、HTMLMediaElement 對應 `sourceIn + elapsed * speed`，Web Audio GainNode 混音，Canvas 畫字幕與效果。
 
@@ -188,7 +188,7 @@ interface SubtitleCue {
 - [useSubtitleEditor.ts](../lyric_flow/web/src/composables/useSubtitleEditor.ts)：文字、秒數、批次取代、刪除、複製、分割及 undo／redo。無專用合併；分割目前複製完整文字到左右兩段。
 - [useAudioPlayer.ts](../lyric_flow/web/src/composables/useAudioPlayer.ts)：以 AudioContext 時鐘排程時間軸音訊；`play/pause/seek`。`useMediaSequence.ts` 管理 A1／A2 音軌及 V1 畫面、來源裁切、字幕連動。
 - [drawLyrics.ts](../lyric_flow/web/src/engine/passes/drawLyrics.ts) 依句子 start/end 算比例；現有 `drawKaraokeBall()` 是句子期間的動畫，不是聲學逐字 Highlight。
-- `useRecording.ts` 錄製 Canvas captureStream 與共用音訊輸出，瀏覽器支援時可輸出 MP4，否則 WebM；沒有 MyCut 式的 backend FFmpeg 影片匯出。
+- `useRecording.ts` 錄製 Canvas captureStream 與共用音訊輸出，瀏覽器支援時可輸出 MP4，否則 WebM；沒有 Reelume 式的 backend FFmpeg 影片匯出。
 
 `useStudio.ts` 的自動圖片節奏會從字幕起訖重新計算。只新增字幕不修改 `sequence.clips`，仍可能改變自動模式的圖片切換節奏；新整合必須處理此間接影響。
 
@@ -242,24 +242,24 @@ AlignmentProcessor：解碼為 WAV、檢查長度
 | --- | --- | --- |
 | 共用 seconds Timeline JSON | 兩邊型別、ID、時間單位不同 | framework-neutral contract 與兩個 adapter |
 | 正確歌詞直接 forced alignment | 兩邊都未具備 | 新獨立 alignment pipeline；不能將舊匹配重新命名充數 |
-| 真正人聲分離／歌唱區域 | MyCut 濾波、LyricFlow 全音軌 ASR | 可替換 separator／detector，保留原時間座標 |
-| JSON／SRT 同步 | MyCut clips 為影格；LyricFlow raw SRT | 單一可編輯來源，完整持久化 words 與修改 |
-| 逐字 Highlight | MyCut 已有；LyricFlow 只有句子比例動畫 | 共用絕對 word seconds，投影到各 renderer |
+| 真正人聲分離／歌唱區域 | Reelume 濾波、LyricFlow 全音軌 ASR | 可替換 separator／detector，保留原時間座標 |
+| JSON／SRT 同步 | Reelume clips 為影格；LyricFlow raw SRT | 單一可編輯來源，完整持久化 words 與修改 |
+| 逐字 Highlight | Reelume 已有；LyricFlow 只有句子比例動畫 | 共用絕對 word seconds，投影到各 renderer |
 | 合併／文字分割／播放單句 | 既有一般 clip split、seek 不等於此功能 | 新字幕操作，沿用原 history／player |
 | progress event | 兩者已有階段與輪詢，欄位不同 | 新標準 event＋SSE／可恢復查詢 |
 | 結構化錯誤 | 多數為 `{error: string}` 或 job message | `code/message/details/suggestion` |
-| 圖片排列保護 | MyCut 可獨立插字幕；LyricFlow 自動圖片與字幕節奏連動 | 除檢查 clips 不變，也驗證自動輪播時間不被新匯入改動 |
+| 圖片排列保護 | Reelume 可獨立插字幕；LyricFlow 自動圖片與字幕節奏連動 | 除檢查 clips 不變，也驗證自動輪播時間不被新匯入改動 |
 | CPU 可用 | 目前 Whisper 走 CPU | 新分離／對齊模型需另外實測，不能推論已有支援 |
 
 ## 5. 本次實際驗證
 
-執行環境回報為 macOS、`x86_64` 程序架構；不據此推論已有 Apple GPU／CUDA。既有 Whisper 執行檔與 MyCut 模型檔存在；本次沒有下載或安裝新模型。
+執行環境回報為 macOS、`x86_64` 程序架構；不據此推論已有 Apple GPU／CUDA。既有 Whisper 執行檔與 Reelume 模型檔存在；本次沒有下載或安裝新模型。
 
 | 指令 | 結果 |
 | --- | --- |
-| MyCut `npm test` | 46 passed、0 failed、0 skipped |
-| MyCut `npm run typecheck` | 通過 |
+| Reelume `npm test` | 46 passed、0 failed、0 skipped |
+| Reelume `npm run typecheck` | 通過 |
 | LyricFlow `npm run typecheck` | 通過 |
 | LyricFlow `PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m unittest tests.test_alignment tests.test_jobs tests.test_repair tests.test_recognition_cache` | 27 passed |
 
-未執行本次 browser E2E、封裝、完整 MP4 匯出或真實中文歌曲邊界測試。MyCut 的 speech fixtures 是合成語音／英文旋律句；LyricFlow 的真實歌曲整合測試需外部 fixtures。現有測試通過不代表中文歌唱 forced alignment 已達標，也不能用既有 `expected.srt` 自我比對代替人工聲學標註。
+未執行本次 browser E2E、封裝、完整 MP4 匯出或真實中文歌曲邊界測試。Reelume 的 speech fixtures 是合成語音／英文旋律句；LyricFlow 的真實歌曲整合測試需外部 fixtures。現有測試通過不代表中文歌唱 forced alignment 已達標，也不能用既有 `expected.srt` 自我比對代替人工聲學標註。

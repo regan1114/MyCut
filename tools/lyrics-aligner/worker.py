@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MyCut's local known-lyrics aligner. This process never transcribes audio."""
+"""Reelume's local known-lyrics aligner. This process never transcribes audio."""
 
 import json
 import math
@@ -130,9 +130,9 @@ def timeline(audio_path, model_path, lines, preserve_lines):
         emit(
             type="error",
             code="MODEL_LOAD_FAILED",
-            message="MyCut 的歌詞對齊模型無法載入。",
+            message="Reelume 的歌詞對齊模型無法載入。",
             details=str(error),
-            suggestion="重新安裝 MyCut，確認對齊模型檔案完整。",
+            suggestion="重新安裝 Reelume，確認對齊模型檔案完整。",
         )
         return None
 
@@ -168,9 +168,9 @@ def main():
         model_path = Path(request["model"])
         lines = request["lines"]
         if not audio_path.is_file():
-            raise FileNotFoundError("找不到 MyCut 擷取的音訊檔。")
+            raise FileNotFoundError("找不到 Reelume 擷取的音訊檔。")
         if not model_path.is_file():
-            raise FileNotFoundError("找不到 MyCut 內建的歌詞對齊模型。")
+            raise FileNotFoundError("找不到 Reelume 內建的歌詞對齊模型。")
         project = timeline(
             audio_path,
             model_path,
@@ -183,9 +183,9 @@ def main():
         emit(
             type="error",
             code="ALIGNMENT_RUNTIME_FAILED",
-            message="MyCut 本機歌詞對齊失敗。",
+            message="Reelume 本機歌詞對齊失敗。",
             details=str(error),
-            suggestion="重新啟動 MyCut；若持續發生，請重新安裝應用程式。",
+            suggestion="重新啟動 Reelume；若持續發生，請重新安裝應用程式。",
         )
         sys.exit(1)
 

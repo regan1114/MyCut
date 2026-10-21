@@ -1,8 +1,8 @@
 {
-  "testedAt": "2026-10-17T02:48:53.754Z",
+  "testedAt": "2026-10-21T10:44:28.389Z",
   "platform": "darwin",
   "arch": "x64",
-  "version": "0.6.29",
+  "version": "0.6.31",
   "packagedApp": true,
   "fonts": 40,
   "nativeExport": "passed",
@@ -16,5 +16,5 @@
   "nativeFilePicker": "passed",
   "nativeProjectOpen": "passed",
   "packagedSpeech": "passed",
-  "root": "/var/folders/ff/1ctz97qd2n12pzj54hd1rd0r0000gn/T/mycut 桌面測試-HF9nTx"
+  "root": "/var/folders/ff/1ctz97qd2n12pzj54hd1rd0r0000gn/T/mycut 桌面測試-P6MJAQ"
 }

@@ -356,7 +356,7 @@ playground.xcworkspace
 # Swift Package Manager
 # Package.resolved
 
-# MyCut generated builds, packages, and local tooling
+# Reelume generated builds, packages, and local tooling
 /dist-server/
 /.build-staging/
 /.build-tools/
@@ -379,3 +379,8 @@ playground.xcworkspace
 /resources/windows-runtime/**/*.dll
 /resources/lyrics-alignment/models/*.pt
 /resources/lyrics-alignment/*-*/
+
+/resources/vocal-separation/models/*.th
+/resources/vocal-separation/models/*.partial
+/resources/vocal-separation/*-*/
+/resources/vocal-separation/licenses/

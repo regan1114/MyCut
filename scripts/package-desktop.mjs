@@ -16,6 +16,7 @@ if(!process.env.npm_execpath)throw new Error('請使用 npm run package:mac / pa
 const npm=(args,options={})=>run(process.execPath,[process.env.npm_execpath,...args],options);
 await run(process.execPath,['scripts/install-lyrics-alignment-model.mjs']);
 await run(process.execPath,['scripts/build-lyrics-aligner.mjs',platform,arch]);
+await run(process.execPath,['scripts/build-vocal-separator.mjs']);
 await npm(['run','build']);
 await run(process.execPath,['scripts/install-speech.mjs','--platform',platform,'--arch',arch]);
 const config={electronVersion:require('electron/package.json').version};
@@ -35,6 +36,7 @@ if(target==='win'||arch!==process.arch){
   for(const name of await fs.readdir('resources/speech'))if(name===`${platform}-${arch}`||!name.startsWith('darwin-')&&!name.startsWith('win32-'))await fs.cp(path.join(root,'resources/speech',name),path.join(speech,name),{recursive:true});
   const alignment=path.join(stage,'resources/lyrics-alignment');await fs.mkdir(alignment,{recursive:true});
   for(const name of ['models','licenses',`${platform}-${arch}`])await fs.cp(path.join(root,'resources/lyrics-alignment',name),path.join(alignment,name),{recursive:true});
+  await fs.cp(path.join(root,'resources/vocal-separation'),path.join(stage,'resources/vocal-separation'),{recursive:true});
   await npm(['ci','--omit=dev','--ignore-scripts',`--os=${platform}`,`--cpu=${arch}`,'--no-audit','--no-fund'],{cwd:stage});
   await run(process.execPath,[path.join(stage,'node_modules/ffmpeg-static/install.js')],{cwd:stage,env:{...process.env,npm_config_platform:platform,npm_config_arch:arch}});
   for(const name of [`@napi-rs/canvas-${platform}-${arch}${target==='win'?'-msvc':''}`,`@resvg/resvg-js-${platform}-${arch}${target==='win'?'-msvc':''}`])await fs.access(path.join(stage,'node_modules',name));
@@ -47,6 +49,6 @@ if(target==='win'||arch!==process.arch){
   config.electronDist=path.join(root,'node_modules/electron/dist');
   config.files.push('!resources/speech/win32-*/**/*',`!resources/speech/darwin-${arch==='x64'?'arm64':'x64'}/**/*`);
 }
-for(const otherPlatform of ['darwin','win32'])for(const otherArch of ['x64','arm64'])if(`${otherPlatform}-${otherArch}`!==`${platform}-${arch}`)config.files.push(`!resources/lyrics-alignment/${otherPlatform}-${otherArch}/**/*`);
+for(const otherPlatform of ['darwin','win32'])for(const otherArch of ['x64','arm64'])if(`${otherPlatform}-${otherArch}`!==`${platform}-${arch}`)config.files.push(`!resources/lyrics-alignment/${otherPlatform}-${otherArch}/**/*`,`!resources/vocal-separation/${otherPlatform}-${otherArch}/**/*`);
 const artifacts=await build({projectDir:root,config,targets:(target==='win'?Platform.WINDOWS:Platform.MAC).createTarget(target==='win'?['nsis','zip']:['dir'],arch==='x64'?Arch.x64:Arch.arm64),publish:'never'});
 console.log('Package complete:',artifacts.length?artifacts.join('\n'):path.join(config.directories?.output??path.join(root,'release'),platform==='darwin'?'mac':'win-unpacked'));

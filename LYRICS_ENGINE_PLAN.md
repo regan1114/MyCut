@@ -1,6 +1,6 @@
 # Lyrics Timeline Engine 整合方案
 
-> 此文件記錄原始規劃；現況已改為 MyCut 自帶本機原稿對齊引擎，沒有 LyricFlow 服務或 npm runtime 依賴。已實作與封裝流程請看 `LYRICS_ENGINE_INTEGRATION.md`。
+> 此文件記錄原始規劃；現況已改為 Reelume 自帶本機原稿對齊引擎，沒有 LyricFlow 服務或 npm runtime 依賴。已實作與封裝流程請看 `LYRICS_ENGINE_INTEGRATION.md`。
 
 日期：2026-09-29。依據 [CURRENT_ARCHITECTURE.md](CURRENT_ARCHITECTURE.md) 的實際程式盤點。本文件是實作前的方案，以下新增檔案、API、模型與行為皆尚未完成。
 
@@ -12,7 +12,7 @@
 
 ```mermaid
 flowchart TD
-  React[MyCut React] --> Express[現有 Express /api/lyrics bridge]
+  React[Reelume React] --> Express[現有 Express /api/lyrics bridge]
   Vue[LyricFlow Vue] --> Flask[現有 Flask /api/lyrics bridge]
   Express --> API[新 FastAPI loopback service :8765]
   Flask --> API
@@ -28,9 +28,9 @@ flowchart TD
   Timeline --> Flask
 ```
 
-FastAPI 是新增服務，不取代 LyricFlow 的 Flask，也不改寫 MyCut 的 Express。Browser 繼續請求同源 URL；兩個 backend 呼叫固定的 loopback AI service，保留既有 CSP 與 Host／Origin 限制。
+FastAPI 是新增服務，不取代 LyricFlow 的 Flask，也不改寫 Reelume 的 Express。Browser 繼續請求同源 URL；兩個 backend 呼叫固定的 loopback AI service，保留既有 CSP 與 Host／Origin 限制。
 
-服務程式先放在 MyCut repository 的 `lyric-engine/`，可單獨安裝啟動；不匯入 MyCut 的 Project、React、Vue 或 LyricFlow 的 Flask。共用 TS package 放在 `packages/lyrics-timeline/`。不重組兩個既有 repository，也不另建全新的剪輯器。
+服務程式先放在 Reelume repository 的 `lyric-engine/`，可單獨安裝啟動；不匯入 Reelume 的 Project、React、Vue 或 LyricFlow 的 Flask。共用 TS package 放在 `packages/lyrics-timeline/`。不重組兩個既有 repository，也不另建全新的剪輯器。
 
 ## 2. 共用資料契約
 
@@ -150,7 +150,7 @@ lyric-engine/
   tests/
   README.md
 
-shared/lyrics-adapter.ts           # MyCut seconds ↔ clip projections
+shared/lyrics-adapter.ts           # Reelume seconds ↔ clip projections
 server/lyrics.ts                   # Express 同源 bridge、source snapshot
 src/components/LyricsSourcePanel.tsx
 scripts/verify-lyrics.ts
@@ -229,11 +229,11 @@ SHA256(
 
 同 key 工作互斥，partial 不作 cache hit，完成後 rename；讀入時驗證 schema、時長、檔案完整性。使用者手動修改是專案資料，不能回寫原始分析 cache。提供有界容量／清除入口，活動工作不被清理。
 
-開發預設 `.cache/lyrics-engine/`；桌面版改用可寫 userData 或服務資料目錄，不寫進 ASAR。模型首次安裝與實際分析分開，固定來源／版本／checksum，runtime 不臨時下載。不要複製整個 LyricFlow `.venv` 進 MyCut 安裝包。
+開發預設 `.cache/lyrics-engine/`；桌面版改用可寫 userData 或服務資料目錄，不寫進 ASAR。模型首次安裝與實際分析分開，固定來源／版本／checksum，runtime 不臨時下載。不要複製整個 LyricFlow `.venv` 進 Reelume 安裝包。
 
 V1 開發與本機服務採明確獨立啟動指令；兩個工具共用一個服務。health 不可用時說明如何啟動，不自動啟動另一個佔相同 port 的 worker。封裝自動管理服務時，必須有 owner PID／version handshake：只停止自己啟動的程序，共用服務仍被另一工具使用時不能關閉。CPU 可運作是發佈門檻；CUDA／MPS 為後續經測試的加速能力。
 
-## 7. MyCut 整合細節
+## 7. Reelume 整合細節
 
 ### 7.1 音訊來源與座標
 
@@ -259,7 +259,7 @@ projectSeconds = clip.start / fps + (sourceSeconds - clip.sourceIn) / clip.speed
 - Preview／MP4 在影格格點呈現，正常邊界差上限為半影格；JSON／SRT 仍保留精準 seconds。舊 clips 沒有 `lyricSegment` 時維持原行為。
 - words 投影為 clip-relative frames；若量化後某字不足 1 frame 或不再符合 `validWordTiming()`，原 words 留在共用 JSON，該 clip 使用 sentence fallback。禁止偽造延長的逐字時間。
 
-新增 `applyLyricProject()` 使用 `insertTimedClips()` 建立獨立 Subtitle Track，不呼叫 append、不修改圖片、影片或音訊排列。批次 ID／segment ID 與 MyCut UUID 各司其職。32 軌、20,000 clips、鎖軌與來源過期檢查先完成才一次提交。
+新增 `applyLyricProject()` 使用 `insertTimedClips()` 建立獨立 Subtitle Track，不呼叫 append、不修改圖片、影片或音訊排列。批次 ID／segment ID 與 Reelume UUID 各司其職。32 軌、20,000 clips、鎖軌與來源過期檢查先完成才一次提交。
 
 ### 7.3 編輯一致性
 
@@ -295,7 +295,7 @@ projectSeconds = clip.start / fps + (sourceSeconds - clip.sourceIn) / clip.speed
 
 ### 8.1 兩端一致的來源與編輯介面
 
-兩端都使用「歌詞／字幕來源」：`AI 自動辨識`、`正確歌詞精準對齊`、`匯入 SRT`。MyCut 的 AI 選項繼續使用既有辨識；LyricFlow 在 Phase 2 前不可把需要歌詞的舊匹配當成 audio-only AI，該新來源先顯示尚未提供，舊入口仍可使用。Hybrid 不出現在一般使用者選單。
+兩端都使用「歌詞／字幕來源」：`AI 自動辨識`、`正確歌詞精準對齊`、`匯入 SRT`。Reelume 的 AI 選項繼續使用既有辨識；LyricFlow 在 Phase 2 前不可把需要歌詞的舊匹配當成 audio-only AI，該新來源先顯示尚未提供，舊入口仍可使用。Hybrid 不出現在一般使用者選單。
 
 精準模式顯示歌曲檔名、正確歌詞輸入框、預設開啟的「保留每行歌詞」與「分析並對齊歌詞」。送出後鎖定本次來源快照，顯示整體進度、目前階段與取消；失敗保留輸入及原字幕。套用會取代已有字幕時沿用既有確認，對新增獨立字幕軌不增加不必要的確認步驟。
 
@@ -303,7 +303,7 @@ projectSeconds = clip.start / fps + (sourceSeconds - clip.sourceIn) / clip.speed
 
 ## 9. 預計修改檔案
 
-### 9.1 MyCut
+### 9.1 Reelume
 
 | 檔案 | 變更 |
 | --- | --- |
@@ -346,7 +346,7 @@ projectSeconds = clip.start / fps + (sourceSeconds - clip.sourceIn) / clip.speed
 
 舊 `alignment.py`／`recognition.py`／`repair.py` 保留，不改成新服務的隱藏前置依賴。`lyric_flow_client.py` 的既有 SRT API 相容；新 Timeline client 可獨立提供。
 
-本次兩份文件都寫在 MyCut；LyricFlow 本次僅讀取與驗證，未修改其程式。
+本次兩份文件都寫在 Reelume；LyricFlow 本次僅讀取與驗證，未修改其程式。
 
 ## 10. 分段實作，每段可驗收
 
@@ -355,7 +355,7 @@ projectSeconds = clip.start / fps + (sourceSeconds - clip.sourceIn) / clip.speed
 | 1A | 共用 contract／JSON／SRT、兩端 adapter 純函式 | 原文、秒數、words、ID、round-trip 與非法輸入測試 |
 | 1B | 真實聲學模型 spike，CLI 輸出 `lyrics.json/srt` | CPU 跑完中文歌曲，人工邊界評量，不使用 stub 時間 |
 | 1C | FastAPI、持久 job、階段事件、cancel、cache、錯誤 | 服務重啟／取消／同 key 重用／壞音檔／缺模型可重現 |
-| 1D | MyCut 套用字幕軌與修正／保存 | 拖兩端、文字、split／merge、播放句子；原圖像排列不變 |
+| 1D | Reelume 套用字幕軌與修正／保存 | 拖兩端、文字、split／merge、播放句子；原圖像排列不變 |
 | 1E | LyricFlow 結構化字幕與同源 bridge | JSON 無損、words fallback、草稿／專案 round-trip、圖片節奏保護 |
 | 1F | 跨工具與 CPU 發佈驗收 | 第 11 節通過後才稱 V1 完成 |
 | 2 | `ASREngine`、`POST /lyrics/transcribe` | audio-only 產生 `auto_recognition`；confidence／words 如實保留 |
@@ -386,21 +386,21 @@ Phase 2／3 尚未提供時 `/health` 明確列出不支援；不要回傳空的
 | 原文 | 繁簡／標點／空白／emoji grapheme／數字、空行、重複句、preserve_lines 開關 |
 | 聲學路徑 | CTC blank、相鄰重複 token、跨窗 offset、長音、no-path、unsupported token，不均分輸出 |
 | Export | 一小時以上時間、BOM／CRLF、多行、JSON→SRT→parse 的毫秒誤差、無效極短區段 |
-| MyCut | 24／25／30／50／60 fps、sourceIn／speed、clip 多次 occurrence、source changed、鎖軌／32 軌上限、精準秒數多次保存不漂移 |
+| Reelume | 24／25／30／50／60 fps、sourceIn／speed、clip 多次 occurrence、source changed、鎖軌／32 軌上限、精準秒數多次保存不漂移 |
 | 編輯 | move／兩端 trim／文字／merge／split／duplicate／刪除／undo／redo 後 JSON、SRT、preview 一致；words 失效只回 sentence mode |
 | LyricFlow | 不經 SRT 中轉保存 words；raw 輸入轉換；v1→v2；`.resonance`、IndexedDB 草稿、字幕連動 snapshot |
-| 保留圖片 | 套用前後 MyCut 非字幕 clips 深比較；LyricFlow V1 clips、圖片順序、auto 切換時間也比較 |
+| 保留圖片 | 套用前後 Reelume 非字幕 clips 深比較；LyricFlow V1 clips、圖片順序、auto 切換時間也比較 |
 | API | 上傳中斷、超限、損壞音檔、模型不存在、OOM、分離失敗、取消／關閉、SSE 斷線、stale result、cache key 失效 |
 | Preview／MP4 | 句子開始前／開始／結束畫面、word highlight、無 words fallback、seek 重播、原音訊與特效不變 |
 
-沿用 MyCut `npm test`、`npm run typecheck`、相關 Playwright／`test:karaoke`／`test:export`；LyricFlow 使用現有 Python tests、typecheck、Vitest、recognition／project／draft／timeline E2E。Mock 只驗證 UI 與生命週期，不能取代 1B 的聲學實測。
+沿用 Reelume `npm test`、`npm run typecheck`、相關 Playwright／`test:karaoke`／`test:export`；LyricFlow 使用現有 Python tests、typecheck、Vitest、recognition／project／draft／timeline E2E。Mock 只驗證 UI 與生命週期，不能取代 1B 的聲學實測。
 
 ### 11.3 最終操作驗收
 
 1. 在兩工具選「正確歌詞精準對齊」，選歌曲、貼入原歌詞。
 2. 按「分析並對齊歌詞」，看到準備音訊 → 分離人聲 → 分析歌唱區域 → 對齊 → 產生時間軸的真實階段。
 3. 得到同一 contract 的 `lyrics.json` 與 `lyrics.srt`，看到未定位／需校對的句子。
-4. MyCut 建立獨立字幕軌；LyricFlow 顯示對應句子。原圖片安排保持不變。
+4. Reelume 建立獨立字幕軌；LyricFlow 顯示對應句子。原圖片安排保持不變。
 5. 改文字、起訖，拖左右邊界，播放一句、定位、合併、分割、刪除，確認當前 JSON／SRT／Preview 同步。
 6. 保存、關閉、還原，時間與 words 不丟失；有 words 使用逐字高亮，無 words 正常逐句顯示。
 7. 匯出 MP4 並抽查聲畫同步；再次分析未變動歌曲／歌詞確實命中 cache。

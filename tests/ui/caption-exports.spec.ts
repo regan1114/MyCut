@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { makeClip, newProject, parseSrt, type Project } from '../../shared/model';
 
 async function open(page: Page, project: Project) {
-  expect((await page.request.put(`/api/projects/${project.id}`, { headers: { 'X-MyCut': '1' }, data: project })).ok()).toBeTruthy();
+  expect((await page.request.put(`/api/projects/${project.id}`, { headers: { 'X-Reelume': '1' }, data: project })).ok()).toBeTruthy();
   await page.goto('/');
   await page.getByRole('button', { name: `開啟 ${project.name}`, exact: true }).click();
   await page.getByRole('navigation').getByRole('button', { name: '字幕', exact: true }).click();

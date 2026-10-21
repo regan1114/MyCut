@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 
 const root=await fs.mkdtemp(path.join(os.tmpdir(),'mycut-interface-')),require=createRequire(import.meta.url);
 const unpackaged=process.env.MYCUT_TEST_UNPACKAGED==='1';
-const binary=unpackaged?require('electron'):(process.env.MYCUT_TEST_APP??path.resolve(process.platform==='win32'?'release/win-unpacked/MyCut.exe':`release/${process.arch==='arm64'?'mac-arm64':'mac'}/MyCut.app/Contents/MacOS/MyCut`));
+const binary=unpackaged?require('electron'):(process.env.MYCUT_TEST_APP??path.resolve(process.platform==='win32'?'release/win-unpacked/Reelume.exe':`release/${process.arch==='arm64'?'mac-arm64':'mac'}/Reelume.app/Contents/MacOS/Reelume`));
 const env={...process.env,MYCUT_DATA_DIR:root};delete env.ELECTRON_RUN_AS_NODE;
 const app=await electron.launch({executablePath:binary,env,args:[...(unpackaged?['.']:[]),`--user-data-dir=${path.join(root,'profile')}`],timeout:30000});
 try{

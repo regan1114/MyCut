@@ -1,3 +1,4 @@
+import { addProjectMedia } from '../shared/project-media';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -38,6 +39,8 @@ export class Projects {
   }
   createSnapshot(id:string){return this.serial(async()=>{await this.snapshots.capture(await this.read(id),'manual');return this.snapshots.list(id);});}
   restoreSnapshot(id:string,snapshotId:string){return this.serial(async()=>{const snapshot=await this.snapshots.read(id,snapshotId);return this.write({...snapshot,id:randomUUID(),name:(snapshot.name.slice(0,110)+' · 還原')});});}
+  addLogo(id:string,mediaId:string){return this.serial(async()=>{const p=addProjectMedia(await this.read(id),[mediaId]);return this.write({...p,logoMediaIds:[...new Set([...p.logoMediaIds,mediaId])]});});}
+  addMedia(id:string,mediaId:string){return this.serial(async()=>this.write(addProjectMedia(await this.read(id),[mediaId])));}
   save(value:unknown){const p=ProjectSchema.parse(value);return this.serial(()=>this.write(p));}
   create(value:unknown){const p=ProjectSchema.parse(value);return this.serial(async()=>{if(await fs.stat(this.file(p.id)).catch(()=>null)||await fs.stat(this.file(p.id,true)).catch(()=>null))throw new Error('專案 ID 已存在');const lists=await Promise.all([this.list(),this.list(true)]);p.name=nextProjectName(lists.flat().map(p=>p.name));return this.write(p);});}
   rename(id:string,name:string){return this.serial(async()=>{const p=await this.read(id);p.name=name;return this.write(ProjectSchema.parse(p));});}

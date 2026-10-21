@@ -3,7 +3,7 @@ import { makeClip, newProject, type Project } from '../../shared/model';
 
 const url=(page:Page,pathname:string)=>new URL(pathname,page.url()).href;
 const read=async(page:Page,id:string)=>{await expect(page.getByText('已儲存至本機',{exact:true})).toBeVisible();return await(await page.request.get(url(page,`/api/projects/${id}`))).json() as Project;};
-const open=async(page:Page,p:Project)=>{expect((await page.request.put(url(page,`/api/projects/${p.id}`),{headers:{'X-MyCut':'1'},data:p})).ok()).toBeTruthy();await page.goto(url(page,'/'));await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();};
+const open=async(page:Page,p:Project)=>{expect((await page.request.put(url(page,`/api/projects/${p.id}`),{headers:{'X-Reelume':'1'},data:p})).ok()).toBeTruthy();await page.goto(url(page,'/'));await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();};
 
 export async function checkSnapshots(page:Page){
  const p=newProject();p.name=`快照 ${p.id.slice(0,8)}`;p.clips=[makeClip({kind:'text',trackId:'text',start:0,duration:90,text:'快照內容'})];await open(page,p);

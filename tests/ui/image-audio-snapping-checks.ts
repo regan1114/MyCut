@@ -3,7 +3,7 @@ import { createCanvas } from '@napi-rs/canvas';
 import { makeClip, newProject, type Project } from '../../shared/model';
 
 export async function checkImageAudioSnapping(page:Page,track:'main'|'logo',scrolled=false){
-  const url=(pathname:string)=>new URL(pathname,page.url()).href,headers={'X-MyCut':'1'},p=newProject(),musicEnd=6695;
+  const url=(pathname:string)=>new URL(pathname,page.url()).href,headers={'X-Reelume':'1'},p=newProject(),musicEnd=6695;
   p.name=`圖片對齊音樂 ${track} ${scrolled?'捲動尾端':'完整時間軸'}`;
   const png=createCanvas(160,90),ctx=png.getContext('2d');ctx.fillStyle='#4c7ba5';ctx.fillRect(0,0,160,90);
   const dataLength=Math.floor(musicEnd/p.fps*8000)*2,wav=Buffer.alloc(44+dataLength);

@@ -46,7 +46,7 @@ try {
   const previous = JSON.parse(await fs.readFile(stamp, 'utf8'));
   await fs.access(binary);
   if (previous.sha256 === buildHash) {
-    console.log(`MyCut 本機原稿對齊引擎已是目前版本：${binary}`);
+    console.log(`Reelume 本機原稿對齊引擎已是目前版本：${binary}`);
     process.exit(0);
   }
 } catch {}
@@ -101,4 +101,4 @@ await run(python, args, { cwd: root, env });
 await fs.access(binary);
 if (platform !== 'win32') await fs.chmod(binary, 0o755);
 await fs.writeFile(stamp, JSON.stringify({ target: `${platform}-${arch}`, pythonVersion: pythonInfo.version, sha256: buildHash }, null, 2) + '\n');
-console.log(`MyCut 本機原稿對齊引擎已建置：${binary}`);
+console.log(`Reelume 本機原稿對齊引擎已建置：${binary}`);

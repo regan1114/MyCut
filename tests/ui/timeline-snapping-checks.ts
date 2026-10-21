@@ -3,7 +3,7 @@ import { makeClip, newProject, uid, type Project } from '../../shared/model';
 
 const url=(page:Page,pathname:string)=>new URL(pathname,page.url()).href;
 async function open(page:Page,p:Project){
-  expect((await page.request.put(url(page,`/api/projects/${p.id}`),{headers:{'X-MyCut':'1'},data:p})).ok()).toBeTruthy();
+  expect((await page.request.put(url(page,`/api/projects/${p.id}`),{headers:{'X-Reelume':'1'},data:p})).ok()).toBeTruthy();
   await page.goto(url(page,'/'));await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
 }
 async function read(page:Page,p:Project){

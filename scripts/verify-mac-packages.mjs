@@ -8,13 +8,13 @@ import { verifyBundledFonts } from './verify-bundled-fonts.mjs';
 const asar=createRequire(import.meta.url)('@electron/asar');
 const reports=[];
 for(const arch of ['x64','arm64']){
-  const app=path.resolve(`release/${arch==='x64'?'mac':'mac-arm64'}/MyCut.app`);
+  const app=path.resolve(`release/${arch==='x64'?'mac':'mac-arm64'}/Reelume.app`);
   if(!await fs.stat(app).catch(()=>null))continue;
   const resources=path.join(app,'Contents/Resources'),unpacked=path.join(resources,'app.asar.unpacked');
   const appManifest=JSON.parse(asar.extractFile(path.join(resources,'app.asar'),'package.json').toString());
   assert.equal(appManifest.version,JSON.parse(await fs.readFile('package.json','utf8')).version);
   const platform=`darwin-${arch}`;
-  const binaries=[path.join(app,'Contents/MacOS/MyCut'),path.join(unpacked,'node_modules/ffmpeg-static/ffmpeg'),path.join(unpacked,arch==='arm64'?'node_modules/@ffprobe-installer/darwin-arm64/ffprobe':'node_modules/ffprobe-static/bin/darwin/x64/ffprobe'),path.join(unpacked,`resources/speech/${platform}/whisper-cli`)];
+  const binaries=[path.join(app,'Contents/MacOS/Reelume'),path.join(unpacked,'node_modules/ffmpeg-static/ffmpeg'),path.join(unpacked,arch==='arm64'?'node_modules/@ffprobe-installer/darwin-arm64/ffprobe':'node_modules/ffprobe-static/bin/darwin/x64/ffprobe'),path.join(unpacked,`resources/speech/${platform}/whisper-cli`)];
   for(const file of binaries){const b=await fs.readFile(file);assert.equal(b.readUInt32LE(0),0xfeedfacf,file);assert.equal(b.readUInt32LE(4),arch==='x64'?0x01000007:0x0100000c,file);}
   for(const file of binaries){const links=execFileSync('otool',['-L',file],{encoding:'utf8'});assert.ok(!links.includes('/opt/homebrew/')&&!links.includes('/usr/local/'),`Non-system dependency: ${file}`);}
   execFileSync('codesign',['--verify','--deep','--strict',app],{stdio:'pipe'});

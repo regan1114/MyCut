@@ -59,13 +59,14 @@ export class PortableProjects {
     return true;
   });}
   async import(source:string){return this.operation('import',async signal=>{
-    const file=await fs.open(source,'r'),prepared:MediaRecord[]=[];let directory:string|undefined,registered=false,committed=false;
+    const file=await fs.open(source,'r'),prepared:MediaRecord[]=[];let directory:string|undefined,logoDirectory:string|undefined,registered=false,committed=false;
     try{
       const st=await file.stat();if(!st.isFile())throw new Error('請選擇完整專案包檔案。');
-      const prefix=Buffer.alloc(MAGIC.length+4);if((await file.read(prefix,0,prefix.length,0)).bytesRead!==prefix.length||!prefix.subarray(0,MAGIC.length).equals(MAGIC))throw new Error('不是有效的 MyCut 完整專案包，或版本不支援。');
+      const prefix=Buffer.alloc(MAGIC.length+4);if((await file.read(prefix,0,prefix.length,0)).bytesRead!==prefix.length||!prefix.subarray(0,MAGIC.length).equals(MAGIC))throw new Error('不是有效的 Reelume 完整專案包，或版本不支援。');
       const length=prefix.readUInt32BE(MAGIC.length);if(length<2||length>MAX_HEADER||prefix.length+length>st.size)throw new Error('專案包標頭不完整或過大。');
       const data=Buffer.alloc(length);if((await file.read(data,0,length,prefix.length)).bytesRead!==length)throw new Error('專案包標頭不完整。');
       const headerHash=Buffer.alloc(32);if((await file.read(headerHash,0,32,prefix.length+length)).bytesRead!==32||!createHash('sha256').update(data).digest().equals(headerHash))throw new Error('專案設定校驗失敗，請重新複製專案包。');
+      const restoredId=randomUUID();
       const header=HeaderSchema.parse(JSON.parse(data.toString('utf8'))),ids=new Set(header.media.map(m=>m.id));
       if(ids.size!==header.media.length||projectMediaIds(header.project).some(id=>!ids.has(id)))throw new Error('專案包的素材清單不完整或有重複 ID。');
       const fontIds=new Set(header.fonts.map(f=>f.id));if(fontIds.size!==header.fonts.length||header.version===2&&customFontIds(header.project).some(id=>!fontIds.has(id)))throw new Error('專案包的自訂字型清單不完整或有重複 ID。');
@@ -76,7 +77,8 @@ export class PortableProjects {
       await this.space(this.library.root,total);signal.throwIfAborted();directory=path.join(this.library.root,'media',`package-${randomUUID()}`);await fs.mkdir(directory,{recursive:true});
       let done=0;const files:{file:string;name:string;oldId:string}[]=[],fontFiles:{file:string;label:string;extension:string;id:string}[]=[];
       for(const m of items){signal.throwIfAborted();const isFont='extension' in m,name=isFont?m.label+m.extension:m.name;this.status.message=`正在還原：${name}`;
-        const extension=path.extname(name).replace(/[^a-zA-Z0-9.]/g,'').slice(0,12),target=path.join(directory,`${randomUUID()}${extension}`),hash=createHash('sha256');
+        let folder=directory;if(!isFont&&header.project.logoMediaIds.includes(m.id)){logoDirectory=path.join(this.library.root,'projects',restoredId,'logos');await fs.mkdir(logoDirectory,{recursive:true});folder=logoDirectory;}
+        const extension=path.extname(name).replace(/[^a-zA-Z0-9.]/g,'').slice(0,12),target=path.join(folder,`${randomUUID()}${extension}`),hash=createHash('sha256');
         const meter=new Transform({transform:(chunk:Buffer,_encoding,callback)=>{hash.update(chunk);done+=chunk.length;this.status.progress=done/Math.max(1,total)*.85;callback(null,chunk);}});
         await pipeline(createReadStream(source,{start:offset,end:offset+m.bytes-1,highWaterMark:1024*1024}),meter,createWriteStream(target,{flags:'wx'}),{signal});offset+=m.bytes;
         const expected=Buffer.alloc(32);if((await file.read(expected,0,32,offset)).bytesRead!==32||!hash.digest().equals(expected))throw new Error(`檔案「${name}」校驗失敗，請重新複製專案包。`);offset+=32;if(isFont){if(`custom-${expected.toString('hex')}`!==m.id)throw new Error(`字型「${m.label}」識別碼不符。`);fontFiles.push({file:target,label:m.label,extension:m.extension,id:m.id});}else files.push({file:target,name:m.name,oldId:m.id});
@@ -84,12 +86,12 @@ export class PortableProjects {
       const mapping=new Map<string,string>();
       for(const [i,item] of files.entries()){signal.throwIfAborted();this.status.message=`正在建立素材庫：${item.name}`;const record=await this.library.prepare(item.file,true,item.name);prepared.push(record);mapping.set(item.oldId,record.id);this.status.progress=.85+(i+1)/Math.max(1,files.length)*.14;}
       const after=await file.stat();if(after.size!==st.size||after.mtimeMs!==st.mtimeMs)throw new Error('專案包在匯入期間變更，請重試。');
-      const project=ProjectSchema.parse({...header.project,id:randomUUID(),name:(header.project.name+' · 還原').slice(0,120),mediaIds:header.media.map(m=>mapping.get(m.id)!),clips:header.project.clips.map(c=>({...c,mediaId:c.mediaId?mapping.get(c.mediaId):undefined}))});
+      const project=ProjectSchema.parse({...header.project,id:restoredId,name:(header.project.name+' · 還原').slice(0,120),mediaIds:header.media.map(m=>mapping.get(m.id)!),logoMediaIds:header.project.logoMediaIds.map(id=>mapping.get(id)!).filter(Boolean),clips:header.project.clips.map(c=>({...c,mediaId:c.mediaId?mapping.get(c.mediaId):undefined}))});
       for(const font of fontFiles){signal.throwIfAborted();const imported=await this.customFonts!.import(await fs.readFile(font.file),font.label+font.extension,font.label);if(imported.id!==font.id)throw new Error('自訂字型識別碼不符。');await fs.rm(font.file);}
       signal.throwIfAborted();this.status.message='正在儲存還原的專案…';await this.library.addPrepared(prepared);registered=true;
       const saved=await this.projects.save(project);committed=true;this.library.derive(prepared);return saved;
     }finally{
-      await file.close();if(!committed){if(registered)await this.library.removePrepared(prepared);else await Promise.all(prepared.map(m=>fs.rm(path.join(this.library.root,'cache',`${m.id}.jpg`),{force:true})));if(directory)await fs.rm(directory,{recursive:true,force:true});}
+      await file.close();if(!committed){if(registered)await this.library.removePrepared(prepared);else await Promise.all(prepared.map(m=>fs.rm(path.join(this.library.root,'cache',`${m.id}.jpg`),{force:true})));if(directory)await fs.rm(directory,{recursive:true,force:true});if(logoDirectory)await fs.rm(path.dirname(logoDirectory),{recursive:true,force:true});}
     }
   });}
 }

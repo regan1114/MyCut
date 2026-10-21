@@ -1,0 +1,11 @@
+import path from 'node:path';
+import fs from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { run } from './native-downloads.mjs';
+const root=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+await run(process.execPath,[path.join(root,'scripts/setup-vocal-separator.mjs')]);
+const python=path.join(root,'.build-tools',`vocal-separator-${process.platform}-${process.arch}`,process.platform==='win32'?'Scripts/python.exe':'bin/python');
+await run(python,['-m','pip','install','PyInstaller==6.15.0','pyinstaller-hooks-contrib==2026.7']);
+const target=path.join(root,'resources/vocal-separation',`${process.platform}-${process.arch}`);
+await fs.mkdir(target,{recursive:true});
+await run(python,['-m','PyInstaller','--noconfirm','--clean','--onedir','--name','mycut-vocals','--distpath',target,'--workpath',path.join(root,'.build-tools/vocal-pyinstaller'),'--specpath',path.join(root,'.build-tools'),'--collect-all','demucs','--collect-all','torchaudio','--collect-all','soundfile','--collect-all','_soundfile_data','--collect-all','einops','--copy-metadata','demucs',path.join(root,'tools/vocal-separator/worker.py')]);

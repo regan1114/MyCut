@@ -1,9 +1,9 @@
 {
-  "name": "mycut",
-  "version": "0.6.29",
+  "name": "reelume",
+  "version": "0.6.38",
   "private": true,
   "type": "module",
-  "description": "MyCut — 本機多軌影片剪輯器",
+  "description": "Reelume — 本機多軌影片剪輯器",
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "concurrently -k \"tsx watch server/index.ts\" \"vite --host 127.0.0.1\"",
@@ -37,7 +37,9 @@
     "test:portable:desktop": "node scripts/verify-portable-desktop.mjs",
     "test:close:desktop": "node scripts/verify-close-editor.mjs",
     "test:fonts:desktop": "node scripts/verify-fonts-desktop.mjs",
-    "test:interface:desktop": "node scripts/verify-interface-desktop.mjs"
+    "test:interface:desktop": "node scripts/verify-interface-desktop.mjs",
+    "vocals:setup": "node scripts/setup-vocal-separator.mjs",
+    "vocals:build": "node scripts/build-vocal-separator.mjs"
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.9",
@@ -72,7 +74,7 @@
   },
   "build": {
     "appId": "studio.mycut.desktop",
-    "productName": "MyCut",
+    "productName": "Reelume",
     "files": [
       "dist/**/*",
       "!dist/fonts/**/*",
@@ -83,7 +85,9 @@
       "package.json",
       "resources/speech/**/*",
       "resources/lyrics-alignment/**/*",
-      "tools/lyrics-aligner/**/*"
+      "tools/lyrics-aligner/**/*",
+      "resources/vocal-separation/**/*",
+      "tools/vocal-separator/**/*"
     ],
     "asarUnpack": [
       "public/fonts/**/*",
@@ -94,7 +98,9 @@
       "resources/lyrics-alignment/**/*",
       "tools/lyrics-aligner/**/*",
       "node_modules/@napi-rs/**/*",
-      "node_modules/@ffprobe-installer/**/*"
+      "node_modules/@ffprobe-installer/**/*",
+      "resources/vocal-separation/**/*",
+      "tools/vocal-separator/**/*"
     ],
     "mac": {
       "category": "public.app-category.video",
@@ -103,7 +109,7 @@
       ],
       "icon": "resources/icon.icns",
       "extendInfo": {
-        "NSMicrophoneUsageDescription": "MyCut 使用麥克風錄製旁白，錄音只會儲存在你的 Mac。"
+        "NSMicrophoneUsageDescription": "Reelume 使用麥克風錄製旁白，錄音只會儲存在你的 Mac。"
       },
       "minimumSystemVersion": "14.0",
       "identity": "-"
@@ -127,7 +133,7 @@
           ]
         }
       ],
-      "artifactName": "MyCut-${version}-Windows-${arch}.${ext}",
+      "artifactName": "Reelume-${version}-Windows-${arch}.${ext}",
       "signExecutable": false,
       "extraFiles": [
         {
@@ -148,8 +154,8 @@
       "deleteAppDataOnUninstall": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "MyCut",
-      "artifactName": "MyCut-${version}-Windows-${arch}-Setup.${ext}",
+      "shortcutName": "Reelume",
+      "artifactName": "Reelume-${version}-Windows-${arch}-Setup.${ext}",
       "installerLanguages": [
         "zh_TW",
         "en_US"

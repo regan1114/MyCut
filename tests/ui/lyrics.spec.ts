@@ -32,7 +32,7 @@ test('partial alignment keeps valid cues, persists manual lines, and supports ti
     message: '已定位 2 句，1 句待手動校時。', progress: { percent: 100 },
     timeline: { ...timeline, unmatched: [{ id: 93, text: '等我歸來', reason: '未取得有效時長（開始 4.000 秒，結束 4.000 秒）。' }] },
   } }));
-  await page.request.put(`/api/projects/${project.id}`, { headers: { 'X-MyCut': '1' }, data: project });
+  await page.request.put(`/api/projects/${project.id}`, { headers: { 'X-Reelume': '1' }, data: project });
   const open = async () => {
     await page.getByRole('button', { name: `開啟 ${project.name}`, exact: true }).click();
     await page.getByRole('navigation').getByRole('button', { name: '字幕', exact: true }).click();
@@ -85,7 +85,7 @@ test('partial alignment keeps valid cues, persists manual lines, and supports ti
 
 test('entirely unaligned JSON keeps every line for manual timing and round trips through export', async ({ page }) => {
   const project = newProject(); project.name = '全篇待手動校時';
-  await page.request.put(`/api/projects/${project.id}`, { headers: { 'X-MyCut': '1' }, data: project });
+  await page.request.put(`/api/projects/${project.id}`, { headers: { 'X-Reelume': '1' }, data: project });
   await page.goto('/');
   await page.getByRole('button', { name: `開啟 ${project.name}`, exact: true }).click();
   await page.getByRole('navigation').getByRole('button', { name: '字幕', exact: true }).click();
@@ -145,7 +145,7 @@ test('known lyrics reuse the shared text track; JSON, edits, segment playback an
   expect(
     (
       await page.request.put(`/api/projects/${project.id}`, {
-        headers: { 'X-MyCut': '1' },
+        headers: { 'X-Reelume': '1' },
         data: project,
       })
     ).ok(),
@@ -214,7 +214,7 @@ test('timeline JSON imports and cancellation never applies late results', async 
     return route.fulfill({ json: { status: 'cancelled' } });
   });
   await page.request.put(`/api/projects/${project.id}`, {
-    headers: { 'X-MyCut': '1' },
+    headers: { 'X-Reelume': '1' },
     data: project,
   });
   await page.goto('/');
@@ -270,7 +270,7 @@ test('late creation from a cancelled request cannot replace the next active job 
       return route.fulfill({ json: { status: 'cancelled' } });
     });
   await page.request.put(`/api/projects/${project.id}`, {
-    headers: { 'X-MyCut': '1' },
+    headers: { 'X-Reelume': '1' },
     data: project,
   });
   await page.goto('/');

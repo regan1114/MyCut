@@ -5,7 +5,7 @@ export async function checkInspectorNumbers(page:Page){
   const url=(pathname:string)=>new URL(pathname,page.url()).href,p=newProject();p.name='文字數值輸入';
   p.tracks.push({...p.tracks[0],id:'other-text',manualTextLane:true});
   p.clips=[makeClip({kind:'text',trackId:'text',start:0,duration:90,text:'輸入數值',scale:1.23456,keyframes:[{frame:0,x:0,y:0,scale:1.23456,opacity:1},{frame:90,x:0,y:0,scale:2,opacity:1}]}),makeClip({kind:'text',trackId:'text',start:120,duration:90,text:'同軌文字'}),makeClip({kind:'text',trackId:'other-text',start:0,duration:90,text:'另一軌文字'})];
-  expect((await page.request.put(url(`/api/projects/${p.id}`),{headers:{'X-MyCut':'1'},data:p})).ok()).toBeTruthy();
+  expect((await page.request.put(url(`/api/projects/${p.id}`),{headers:{'X-Reelume':'1'},data:p})).ok()).toBeTruthy();
   await page.goto(url('/'));await page.getByRole('button',{name:`開啟 ${p.name}`,exact:true}).click();
   const select=()=>page.getByRole('button',{name:'輸入數值，00:00:00:00',exact:true}).click();await select();
   const scale=page.getByRole('spinbutton',{name:'縮放數值',exact:true}),opacity=page.getByRole('spinbutton',{name:'不透明度數值',exact:true}),crop=page.getByRole('spinbutton',{name:'中心裁切數值',exact:true});

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { checkImageAudioSnapping } from '../tests/ui/image-audio-snapping-checks';
 
 const root=await fs.mkdtemp(path.join(os.tmpdir(),'mycut-image-audio-snap-'));
-const binary=process.env.MYCUT_TEST_APP??path.resolve('release/0.6.21/mac/MyCut.app/Contents/MacOS/MyCut');
+const binary=process.env.MYCUT_TEST_APP??path.resolve('release/0.6.21/mac/Reelume.app/Contents/MacOS/Reelume');
 const env:Record<string,string>={...Object.fromEntries(Object.entries(process.env).filter((entry):entry is [string,string]=>entry[1]!==undefined)),MYCUT_DATA_DIR:root};delete env.ELECTRON_RUN_AS_NODE;
 let app:Awaited<ReturnType<typeof electron.launch>>|undefined;
 try{

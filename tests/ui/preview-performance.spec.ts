@@ -16,7 +16,7 @@ test('long caption projects reuse static text pixels and load only visible fonts
   });
   const p = newProject(); p.name = '長字幕預覽效能';
   p.clips = Array.from({ length: 1201 }, (_, i) => makeClip({ kind: 'text', trackId: 'text', start: i * 90, duration: 90, text: `字幕 ${i + 1}` }));
-  await page.request.put(`/api/projects/${p.id}`, { headers: { 'X-MyCut': '1' }, data: p });
+  await page.request.put(`/api/projects/${p.id}`, { headers: { 'X-Reelume': '1' }, data: p });
   await page.goto('/'); await page.getByRole('button', { name: `開啟 ${p.name}`, exact: true }).click();
   await page.waitForFunction(() => document.fonts.status === 'loaded');
   await page.getByText('已儲存至本機', { exact: true }).waitFor();
@@ -46,7 +46,7 @@ test('long caption projects reuse static text pixels and load only visible fonts
 test('cached preview still updates karaoke, text styles, seeking and portrait aspect ratio', async ({ page }) => {
   const p = newProject(); p.name = '歌詞與直式預覽快取'; p.width = 1080; p.height = 1920;
   p.clips = [makeClip({ kind: 'text', trackId: 'text', start: 0, duration: 120, text: '星光', fontSize: 180, karaoke: { enabled: true, words: [{ text: '星', start: 0, end: 60 }, { text: '光', start: 60, end: 120 }], color: '#ffe27a', offset: 0, source: 'manual' } })];
-  await page.request.put(`/api/projects/${p.id}`, { headers: { 'X-MyCut': '1' }, data: p });
+  await page.request.put(`/api/projects/${p.id}`, { headers: { 'X-Reelume': '1' }, data: p });
   await page.goto('/'); await page.getByRole('button', { name: `開啟 ${p.name}`, exact: true }).click();
   await page.waitForFunction(() => document.fonts.status === 'loaded'); await page.getByText('已儲存至本機', { exact: true }).waitFor();
   const canvas = page.locator('.canvas-wrap canvas'), pixels = () => canvas.evaluate((c: HTMLCanvasElement) => c.toDataURL());
@@ -72,7 +72,7 @@ test('many simultaneous text layers have a bounded surface budget and release ol
   });
   const p = newProject(); p.name = '多層文字記憶體上限';
   p.clips = Array.from({ length: 42 }, (_, i) => makeClip({ kind: 'text', trackId: 'text', start: Math.floor(i / 14) * 60, duration: 60, text: `文字圖層 ${i}`, y: (i % 14 - 7) / 30, fontSize: 30 }));
-  await page.request.put(`/api/projects/${p.id}`, { headers: { 'X-MyCut': '1' }, data: p });
+  await page.request.put(`/api/projects/${p.id}`, { headers: { 'X-Reelume': '1' }, data: p });
   await page.goto('/'); await page.getByRole('button', { name: `開啟 ${p.name}`, exact: true }).click();
   await page.waitForFunction(() => document.fonts.status === 'loaded'); await page.getByText('已儲存至本機', { exact: true }).waitFor();
   const pixels = () => page.locator('.canvas-wrap canvas').evaluate((c: HTMLCanvasElement) => c.toDataURL());

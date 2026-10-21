@@ -1,6 +1,6 @@
 {
-  "version": "0.6.11",
-  "testedAt": "2026-09-24T14:00:12.801Z",
+  "version": "0.6.31",
+  "testedAt": "2026-10-21T10:40:27.703Z",
   "success": true,
   "effects": 40,
   "onsets": 10,
@@ -10,5 +10,5 @@
   "frames": 120,
   "resolution": "1280×720",
   "audioDuration": 4,
-  "root": "/var/folders/ff/1ctz97qd2n12pzj54hd1rd0r0000gn/T/mycut-effects-test-ZKncw6"
+  "root": "/var/folders/ff/1ctz97qd2n12pzj54hd1rd0r0000gn/T/mycut-effects-test-Lzs7n1"
 }

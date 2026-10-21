@@ -26,3 +26,13 @@ test('exports do not restore or write history; cancellation stops rendering and 
   const restarted=new Jobs(jobs.root,library,[],path.resolve('public/fonts'));await restarted.init();assert.deepEqual(restarted.list(),[]);
  }finally{for(const job of jobs.list())await jobs.remove(job.id);jobs.close();library.close();await fs.rm(root,{recursive:true,force:true});}
 });
+
+test('chosen destination is saved before completion; cancellation preserves existing file and save failures can retry',async()=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'mycut-export-save-')),library=new Library(root),jobs=new Jobs(path.join(root,'exports'),library,[],path.resolve('public/fonts')),destination=path.join(root,'影片.mp4');
+ try{
+  await library.init();await jobs.init();await fs.writeFile(destination,'existing movie');
+  const canceled=await jobs.create(project(300),settings,destination);await waitFor(()=>canceled.progress>0);await jobs.remove(canceled.id);assert.equal(await fs.readFile(destination,'utf8'),'existing movie');
+  const saved=await jobs.create(project(1),settings,destination);await waitFor(()=>!jobs.isRunning);assert.equal(saved.status,'completed',saved.error);assert.equal(saved.savedPath,destination);assert.deepEqual(await fs.readFile(destination),await fs.readFile(path.join(jobs.dir(saved),'output.mp4')));await jobs.remove(saved.id);assert.ok((await fs.stat(destination)).size>100);
+  const folder=path.join(root,'unmounted'),retry=await jobs.create(project(1),settings,path.join(folder,'retry.mp4'));await waitFor(()=>!jobs.isRunning);assert.equal(retry.status,'failed');assert.match(retry.error!,/儲存失敗/);assert.equal(retry.savedPath,undefined);await fs.mkdir(folder);await jobs.resume(retry.id);await waitFor(()=>!jobs.isRunning);assert.equal(retry.status,'completed',retry.error);assert.ok((await fs.stat(retry.savedPath!)).size>100);assert.deepEqual(await fs.readdir(folder),['retry.mp4']);
+ }finally{for(const job of jobs.list())await jobs.remove(job.id);jobs.close();library.close();await fs.rm(root,{recursive:true,force:true});}
+});

@@ -1,0 +1,1 @@
+export type VocalJob={id:string;projectId:string;mediaId:string;name:string;status:'queued'|'processing'|'completed'|'error'|'canceled';stage:string;progress:number;dismissed?:boolean;outputId?:string;error?:string};

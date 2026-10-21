@@ -4,15 +4,15 @@ import { test, expect } from '@playwright/test';
 let originalPreferences:{favoriteFontIds:string[]}|undefined,originalProjects:string[]=[];
 test.afterEach(async({page,request})=>{
   await page.close();
-  if(originalPreferences)await request.put('/api/preferences',{headers:{'X-MyCut':'1'},data:originalPreferences});
+  if(originalPreferences)await request.put('/api/preferences',{headers:{'X-Reelume':'1'},data:originalPreferences});
   const projects=await(await request.get('/api/projects')).json();
-  for(const p of projects)if(!originalProjects.includes(p.id))await request.post(`/api/projects/${p.id}/trash`,{headers:{'X-MyCut':'1'}});
+  for(const p of projects)if(!originalProjects.includes(p.id))await request.post(`/api/projects/${p.id}/trash`,{headers:{'X-Reelume':'1'}});
 });
 
 test('font favorites provide defaults while track styles inherit, persist, and recover from save failure',async({page})=>{
   originalPreferences=await(await page.request.get('/api/preferences')).json();
   originalProjects=(await(await page.request.get('/api/projects')).json()).map((p:{id:string})=>p.id);
-  const put=(favoriteFontIds:string[])=>page.request.put('/api/preferences',{headers:{'X-MyCut':'1'},data:{favoriteFontIds}});
+  const put=(favoriteFontIds:string[])=>page.request.put('/api/preferences',{headers:{'X-Reelume':'1'},data:{favoriteFontIds}});
   await put([]);
     await page.goto('/');await page.getByRole('button',{name:'建立新專案',exact:true}).click();
     const nav=page.getByRole('navigation');await nav.getByRole('button',{name:'文字',exact:true}).click();await page.getByRole('button',{name:'新增文字',exact:true}).click();await fontIs(page,'notosanstc');

@@ -9,7 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 async function open(page: Page, project: Project) {
-  expect((await page.request.put(`/api/projects/${project.id}`, { headers: { 'X-MyCut': '1' }, data: project })).ok()).toBeTruthy();
+  expect((await page.request.put(`/api/projects/${project.id}`, { headers: { 'X-Reelume': '1' }, data: project })).ok()).toBeTruthy();
   await page.goto('/');
   await page.getByRole('button', { name: `開啟 ${project.name}`, exact: true }).click();
 }
@@ -58,7 +58,7 @@ test('audio actions live on left, clip properties on right, and keyframes use on
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'mycut-panel-audio-')), file = path.join(root, '有聲影片.mp4');
   try {
     await promisify(execFile)(createRequire(import.meta.url)('ffmpeg-static'), ['-hide_banner', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=160x90:rate=30', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000', '-t', '2', '-c:v', 'libx264', '-preset', 'ultrafast', '-c:a', 'aac', file]);
-    const upload = await page.request.post('/api/media/upload', { headers: { 'X-MyCut': '1' }, multipart: { file: { name: '有聲影片.mp4', mimeType: 'video/mp4', buffer: await fs.readFile(file) } } });
+    const upload = await page.request.post('/api/media/upload', { headers: { 'X-Reelume': '1' }, multipart: { file: { name: '有聲影片.mp4', mimeType: 'video/mp4', buffer: await fs.readFile(file) } } });
     expect(upload.ok()).toBeTruthy(); const media = await upload.json();
     const p = projectWithOverlay(); p.name = '左右音訊分工';
     p.clips = [makeClip({ kind: 'video', trackId: 'main', mediaId: media.imported[0], start: 0, duration: 60, name: '有聲影片', groupId: uid() }), makeClip({ kind: 'shape', trackId: 'overlay', start: 0, duration: 60, name: '圖形' })];

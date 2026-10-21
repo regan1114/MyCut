@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 
 const require=createRequire(import.meta.url),root=await fs.mkdtemp(path.join(os.tmpdir(),'mycut-fonts-'));
 const unpackaged=process.env.MYCUT_TEST_UNPACKAGED==='1';
-const binary=unpackaged?require('electron'):(process.env.MYCUT_TEST_APP??path.resolve(process.platform==='win32'?'release/win-unpacked/MyCut.exe':`release/${process.arch==='arm64'?'mac-arm64':'mac'}/MyCut.app/Contents/MacOS/MyCut`));
+const binary=unpackaged?require('electron'):(process.env.MYCUT_TEST_APP??path.resolve(process.platform==='win32'?'release/win-unpacked/Reelume.exe':`release/${process.arch==='arm64'?'mac-arm64':'mac'}/Reelume.app/Contents/MacOS/Reelume`));
 const env={...process.env,MYCUT_DATA_DIR:root};delete env.ELECTRON_RUN_AS_NODE;
 const errors=[];let app;
 async function launch(){app=await electron.launch({executablePath:binary,env,args:[...(unpackaged?['.']:[]),`--user-data-dir=${path.join(root,'profile')}`],timeout:30000});const page=await app.firstWindow();page.on('pageerror',e=>errors.push(e.message));return page;}
@@ -35,7 +35,7 @@ try{
   await page.getByRole('button',{name:'我的最愛（1）',exact:true}).click();
   await fs.mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/font-favorites-desktop.png',fullPage:true});
   // Exercise cached ordinary text and animated karaoke through native export.
-  const result=await page.evaluate(async()=>{const list=await(await fetch('/api/projects')).json();const p=await(await fetch(`/api/projects/${list[0].id}`)).json();const c=p.clips[0];p.clips=['chenyuluoyan','chirongoroundtc','dmsans'].map((fontId,i)=>({...c,id:crypto.randomUUID(),fontId,start:i*30,duration:30,text:i===2?'Create your story.':'把日常，剪成故事。',fontSize:100,karaoke:{...c.karaoke,enabled:i===1,words:i===1?[{text:'把日常，剪成故事。',start:0,end:30}]:[]}}));return(await fetch('/api/exports',{method:'POST',headers:{'Content-Type':'application/json','X-MyCut':'1'},body:JSON.stringify({project:p,settings:{resolution:720,quality:'standard',encoder:'libx264'}})})).json();});
+  const result=await page.evaluate(async()=>{const list=await(await fetch('/api/projects')).json();const p=await(await fetch(`/api/projects/${list[0].id}`)).json();const c=p.clips[0];p.clips=['chenyuluoyan','chirongoroundtc','dmsans'].map((fontId,i)=>({...c,id:crypto.randomUUID(),fontId,start:i*30,duration:30,text:i===2?'Create your story.':'把日常，剪成故事。',fontSize:100,karaoke:{...c.karaoke,enabled:i===1,words:i===1?[{text:'把日常，剪成故事。',start:0,end:30}]:[]}}));return(await fetch('/api/exports',{method:'POST',headers:{'Content-Type':'application/json','X-Reelume':'1'},body:JSON.stringify({project:p,settings:{resolution:720,quality:'standard',encoder:'libx264'}})})).json();});
   assert.ok(result.id,JSON.stringify(result));let status;
   await expect.poll(async()=>{status=await page.evaluate(async id=>(await(await fetch('/api/exports')).json()).find(j=>j.id===id),result.id);return status.status;},{timeout:60000,intervals:[300,500,1000]}).toMatch(/completed|failed/);
   assert.equal(status.status,'completed',status.error);assert.equal(status.duration,3);
